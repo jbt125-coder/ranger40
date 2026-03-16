@@ -231,7 +231,8 @@ var SP_OFF={x:150,y:0},SHR_OFF={x:0,y:150};
 var PW_S=[‘nova’,‘warp’,‘orbit’,‘comet’,‘pulsar’,‘nebula’,‘quasar’,‘lunar’,‘solar’,‘cosmic’,‘void’,‘stellar’,‘astro’,‘zenith’,‘apex’,‘vortex’,‘flux’,‘ion’,‘plasma’,‘photon’];
 var PW_R=[‘ensign’,‘cadet’,‘pilot’,‘ranger’,‘captain’,‘major’,‘admiral’,‘commander’,‘warlord’,‘legend’,‘ace’,‘chief’,‘elite’,‘prime’,‘omega’];
 var GAME_PW=PW_S[Math.floor(Math.random()*PW_S.length)]+’-’+PW_R[Math.floor(Math.random()*PW_R.length)]+’-’+(1+Math.floor(Math.random()*99));
-document.getElementById(‘pwText’).textContent=GAME_PW;
+function setPWText(){var el=document.getElementById(‘pwText’);if(el)el.textContent=GAME_PW;}
+if(document.readyState===‘loading’){document.addEventListener(‘DOMContentLoaded’,setPWText);}else{setPWText();}
 
 /* STATE */
 var gameActive=false,myTeam=0,myRole=‘ranger’,myName=‘RANGER’;
