@@ -75,9 +75,9 @@ body{font-family:'Orbitron','Courier New',monospace;touch-action:none;user-selec
 .spr{font-size:11px;font-weight:700;}
 .sbuy{border-radius:5px;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:6px 10px;cursor:pointer;border:1px solid;}
 #shopClose{width:100%;background:transparent;border-radius:5px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;padding:10px;cursor:pointer;margin-top:6px;color:rgba(0,212,255,0.5);border:1px solid rgba(0,212,255,0.2);}
-#titleScreen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 50%,rgba(0,20,60,0.98) 0%,rgba(0,0,8,1) 80%);}
+#titleScreen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px 20px;overflow-y:auto;background:radial-gradient(ellipse at 50% 50%,rgba(0,20,60,0.98) 0%,rgba(0,0,8,1) 80%);}
 #titleCvs{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
-.ttl{position:relative;z-index:2;font-size:clamp(18px,5vw,38px);font-weight:900;letter-spacing:6px;text-align:center;color:#00d4ff;text-shadow:0 0 30px rgba(0,212,255,0.8);margin-bottom:6px;}
+.ttl{position:relative;z-index:2;font-size:clamp(18px,5vw,38px);font-weight:900;letter-spacing:6px;text-align:center;color:#00d4ff;text-shadow:0 0 30px rgba(0,212,255,0.8);margin-top:14px;margin-bottom:6px;}
 .tsub{position:relative;z-index:2;font-size:clamp(8px,2vw,11px);letter-spacing:5px;color:rgba(0,212,255,0.5);text-align:center;margin-bottom:16px;}
 #pwBox{position:relative;z-index:2;margin-bottom:18px;text-align:center;}
 #pwText{font-size:clamp(13px,3vw,20px);font-weight:900;letter-spacing:4px;color:#ffe800;text-shadow:0 0 20px rgba(255,230,0,0.8);padding:8px 20px;border:1px solid rgba(255,220,0,0.3);border-radius:6px;background:rgba(255,200,0,0.06);display:inline-block;}
@@ -96,7 +96,8 @@ body{font-family:'Orbitron','Courier New',monospace;touch-action:none;user-selec
 #startBtn{width:100%;background:rgba(0,212,255,0.1);border:2px solid rgba(0,212,255,0.7);border-radius:6px;color:#00d4ff;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:4px;padding:13px;cursor:pointer;}
 .mpBtn{background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.5);border-radius:6px;color:#00d4ff;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;padding:10px 16px;cursor:pointer;transition:background 0.2s;}
 .mpBtn:hover,.mpBtn.sel{background:rgba(0,212,255,0.22);border-color:rgba(0,212,255,0.9);}
-#mpScreen{width:100%;max-width:340px;}
+#mpScreen{width:100%;max-width:340px;position:relative;z-index:2;}
+#roleSelect{width:100%;max-width:340px;position:relative;z-index:2;}
 </style>
 </head>
 <body>
@@ -388,8 +389,7 @@ var btn={left:false,right:false,thrust:false,fire:false,special:false};
 window.addEventListener(‘keydown’,function(e){if(e.code===‘ArrowLeft’||e.code===‘KeyA’)btn.left=true;if(e.code===‘ArrowRight’||e.code===‘KeyD’)btn.right=true;if(e.code===‘ArrowUp’||e.code===‘KeyW’||e.code===‘Space’)btn.thrust=true;if(e.code===‘KeyF’)btn.fire=true;if(e.code===‘KeyE’)btn.special=true;});
 window.addEventListener(‘keyup’,function(e){if(e.code===‘ArrowLeft’||e.code===‘KeyA’)btn.left=false;if(e.code===‘ArrowRight’||e.code===‘KeyD’)btn.right=false;if(e.code===‘ArrowUp’||e.code===‘KeyW’||e.code===‘Space’)btn.thrust=false;if(e.code===‘KeyF’)btn.fire=false;if(e.code===‘KeyE’)btn.special=false;});
 
-// Always show touch controls (works on both touch and mouse)
-document.getElementById(‘touchCtrl’).style.display=‘block’;
+// Touch controls shown only when game is active (not on title screen)
 
 function initJoystick(){
 var wrap=document.getElementById(‘jsWrap’);
@@ -626,6 +626,7 @@ document.getElementById(‘btnLaunch’).addEventListener(‘click’,function()
 function startGame(){
 cancelAnimationFrame(tAnimId);
 document.getElementById(‘titleScreen’).style.display=‘none’;
+document.getElementById(‘touchCtrl’).style.display=‘block’;
 var base=BASES[myTeam];
 player.x=base.x+(Math.random()-0.5)*80;player.y=base.y+(Math.random()-0.5)*80;
 if(myRole===‘tow’){player.maxShield=20;} else {player.maxShield=10;}
