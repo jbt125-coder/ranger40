@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SPACE RANGER OLYMPICS</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;background:#000;}
+body{font-family:'Orbitron','Courier New',monospace;touch-action:none;user-select:none;-webkit-user-select:none;position:fixed;width:100%;}
+#gameCanvas{display:block;position:fixed;top:0;left:0;width:100%;height:100%;}
+#hud{position:fixed;top:0;left:0;right:0;pointer-events:none;z-index:20;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;}
+#hudLeft{display:flex;flex-direction:column;gap:2px;margin-top:108px;}
+#hudRight{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.hl{font-size:7px;letter-spacing:2px;color:rgba(0,212,255,0.5);}
+.hv{font-size:clamp(12px,2.5vw,16px);font-weight:700;color:#00d4ff;text-shadow:0 0 10px rgba(0,212,255,0.6);}
+.hv.gold{color:#ffdd44;text-shadow:0 0 10px rgba(255,220,68,0.6);}
+#shBar{width:120px;height:8px;background:rgba(0,212,255,0.15);border-radius:4px;border:1px solid rgba(0,212,255,0.3);overflow:hidden;margin-top:3px;}
+#shFill{height:100%;background:#00d4ff;border-radius:4px;transition:width 0.2s,background 0.3s;}
+#shFill.low{background:#ff4444;}
+#minimap{position:fixed;top:10px;left:10px;width:140px;height:105px;background:rgba(0,5,15,0.85);border:1px solid rgba(0,212,255,0.25);border-radius:6px;z-index:20;overflow:hidden;}
+#mmCvs{width:140px;height:105px;}
+#mmLbl{position:absolute;top:2px;left:4px;font-size:7px;letter-spacing:2px;color:rgba(0,212,255,0.4);pointer-events:none;}
+#alertBar{position:fixed;top:70px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:25;opacity:0;transition:opacity 0.3s;white-space:nowrap;text-align:center;}
+#alertBar.show{opacity:1;}
+#alertTxt{font-size:clamp(10px,2.5vw,14px);font-weight:700;letter-spacing:3px;color:#ffe800;text-shadow:0 0 20px rgba(255,230,0,1);}
+#roleBadge{position:fixed;top:10px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:21;font-size:8px;letter-spacing:3px;padding:4px 12px;border-radius:3px;border:1px solid rgba(0,212,255,0.3);}
+#zoomBtns{position:fixed;pointer-events:all;z-index:20;display:flex;flex-direction:column;gap:5px;}
+.zBtn{width:36px;height:36px;background:rgba(0,0,0,0.6);border:1px solid rgba(0,212,255,0.35);border-radius:7px;color:rgba(0,212,255,0.8);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+@media(orientation:portrait){#zoomBtns{bottom:160px;right:12px;}}
+@media(orientation:landscape){#zoomBtns{right:12px;top:50%;transform:translateY(-50%);}}
+/* Touch controls — exact spaceranger4 layout */
+#touchCtrl{position:fixed;bottom:0;left:0;right:0;top:0;pointer-events:none;z-index:15;display:none;}
+#jsWrap{position:absolute;pointer-events:all;width:120px;height:120px;}
+#jsZoneL,#jsZoneR{position:absolute;top:50%;transform:translateY(-50%);font-size:9px;color:rgba(0,212,255,0.22);pointer-events:none;}
+#jsZoneL{left:6px;}#jsZoneR{right:6px;}
+#joystickThumb{position:absolute;width:16px;height:16px;border-radius:50%;background:rgba(0,200,255,0.9);border:2px solid #fff;top:20px;left:52px;box-shadow:0 0 10px rgba(0,212,255,0.8);pointer-events:none;transition:box-shadow 0.1s;}
+#joystickThumb.active{box-shadow:0 0 16px rgba(0,255,220,1);}
+#bThrust,#bFire,#bSpecial{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;-webkit-tap-highlight-color:transparent;touch-action:none;}
+#bThrust{width:72px;height:72px;background:rgba(0,0,0,0.55);border:2px solid rgba(255,180,0,0.45);color:rgba(255,210,0,0.9);font-size:22px;}
+#bFire{width:88px;height:88px;background:rgba(0,0,0,0.55);border:2px solid rgba(255,80,80,0.55);color:rgba(255,110,110,0.9);font-size:24px;}
+#bSpecial{width:62px;height:62px;background:rgba(0,0,0,0.55);border:2px solid rgba(100,255,100,0.45);color:rgba(100,255,100,0.9);font-size:18px;}
+#bThrust.pressed{background:rgba(255,180,0,0.18);border-color:rgba(255,210,0,0.9);}
+#bFire.pressed{background:rgba(255,68,68,0.18);border-color:rgba(255,110,110,0.9);}
+#bSpecial.pressed{background:rgba(100,255,100,0.18);border-color:rgba(100,255,100,0.9);}
+#zoomBtns{position:absolute;pointer-events:all;display:flex;flex-direction:column;gap:6px;}
+.zBtn{width:40px;height:40px;background:rgba(0,0,0,0.6);border:1px solid rgba(0,212,255,0.3);border-radius:8px;color:rgba(0,212,255,0.8);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+@media(orientation:portrait){
+  #jsWrap{bottom:22px;left:14px;}
+  #bThrust{bottom:48px;right:114px;}
+  #bFire{bottom:28px;right:18px;}
+  #bSpecial{bottom:130px;right:120px;}
+  #zoomBtns{bottom:140px;right:18px;}
+}
+@media(orientation:landscape){
+  #jsWrap{left:12px;top:50%;transform:translateY(-50%);}
+  #bThrust{right:110px;top:50%;transform:translateY(-50%);}
+  #bFire{right:14px;top:50%;transform:translateY(-20%);}
+  #bSpecial{right:110px;top:25%;transform:translateY(-50%);}
+  #zoomBtns{right:14px;top:10px;}
+}
+#shopOv{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:60;display:none;align-items:center;justify-content:center;padding:14px;}
+#shopOv.show{display:flex;}
+#shopCard{background:rgba(0,8,20,0.99);border-radius:14px;padding:18px 16px;max-width:320px;width:100%;max-height:90vh;overflow-y:auto;}
+#shopCard h2{font-size:10px;letter-spacing:4px;text-align:center;margin-bottom:4px;}
+#shopCredLine{font-size:9px;text-align:center;margin-bottom:14px;letter-spacing:2px;color:#ffdd44;}
+.sitem{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;margin-bottom:7px;}
+.sico{font-size:20px;width:28px;text-align:center;}
+.sinf{flex:1;}
+.snm{font-size:8px;letter-spacing:2px;color:#fff;margin-bottom:2px;}
+.sds{font-size:7px;color:rgba(200,220,240,0.5);letter-spacing:1px;}
+.spr{font-size:11px;font-weight:700;}
+.sbuy{border-radius:5px;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:6px 10px;cursor:pointer;border:1px solid;}
+#shopClose{width:100%;background:transparent;border-radius:5px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;padding:10px;cursor:pointer;margin-top:6px;color:rgba(0,212,255,0.5);border:1px solid rgba(0,212,255,0.2);}
+#titleScreen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 50%,rgba(0,20,60,0.98) 0%,rgba(0,0,8,1) 80%);}
+#titleCvs{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+.ttl{position:relative;z-index:2;font-size:clamp(18px,5vw,38px);font-weight:900;letter-spacing:6px;text-align:center;color:#00d4ff;text-shadow:0 0 30px rgba(0,212,255,0.8);margin-bottom:6px;}
+.tsub{position:relative;z-index:2;font-size:clamp(8px,2vw,11px);letter-spacing:5px;color:rgba(0,212,255,0.5);text-align:center;margin-bottom:16px;}
+#pwBox{position:relative;z-index:2;margin-bottom:18px;text-align:center;}
+#pwText{font-size:clamp(13px,3vw,20px);font-weight:900;letter-spacing:4px;color:#ffe800;text-shadow:0 0 20px rgba(255,230,0,0.8);padding:8px 20px;border:1px solid rgba(255,220,0,0.3);border-radius:6px;background:rgba(255,200,0,0.06);display:inline-block;}
+.pw-lbl{font-size:7px;letter-spacing:3px;color:rgba(0,212,255,0.4);margin-bottom:6px;}
+.pw-hint{font-size:7px;letter-spacing:2px;color:rgba(255,220,68,0.35);margin-top:5px;}
+#roleSelect{position:relative;z-index:2;width:100%;max-width:340px;}
+#roleSelect h3{font-size:9px;letter-spacing:3px;color:rgba(0,212,255,0.6);text-align:center;margin-bottom:10px;}
+.teamRow{display:flex;gap:8px;margin-bottom:12px;justify-content:center;}
+.teamBtn{flex:1;max-width:70px;padding:8px 4px;border-radius:5px;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1px;cursor:pointer;border:2px solid;background:transparent;opacity:0.4;}
+.teamBtn.sel{opacity:1;}
+.roleGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.roleBtn{padding:8px 6px;border-radius:6px;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1px;cursor:pointer;border:1px solid rgba(0,212,255,0.3);background:rgba(0,212,255,0.05);color:rgba(0,212,255,0.8);text-align:center;}
+.roleBtn.sel{background:rgba(0,212,255,0.2);border-color:rgba(0,212,255,0.8);color:#fff;}
+#nameInput{width:100%;background:rgba(0,18,38,0.9);border:1px solid rgba(0,212,255,0.3);border-radius:5px;color:#00d4ff;font-size:16px;padding:8px 10px;font-family:inherit;outline:none;margin-bottom:10px;text-align:center;letter-spacing:2px;}
+#nameInput::placeholder{color:rgba(0,212,255,0.3);}
+#startBtn{width:100%;background:rgba(0,212,255,0.1);border:2px solid rgba(0,212,255,0.7);border-radius:6px;color:#00d4ff;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:4px;padding:13px;cursor:pointer;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="minimap"><canvas id="mmCvs" width="140" height="105"></canvas><div id="mmLbl">RADAR</div></div>
+<div id="hud">
+  <div id="hudLeft">
+    <div class="hl">CREDITS</div><div class="hv gold" id="credDisp">$0</div>
+    <div class="hl" style="margin-top:3px;">SHIELD</div>
+    <div id="shBar"><div id="shFill" style="width:100%"></div></div>
+  </div>
+  <div id="hudRight">
+    <div class="hl">TEAM SCORE</div><div class="hv" id="scoreDisp">0</div>
+    <div class="hl" style="margin-top:3px;">MY POINTS</div><div class="hv gold" id="personalDisp">0</div>
+  </div>
+</div>
+<div id="roleBadge"></div>
+<div id="alertBar"><div id="alertTxt"></div></div>
+<div id="zoomBtns"><div class="zBtn" id="zIn">+</div><div class="zBtn" id="zOut">-</div></div>
+<div id="touchCtrl">
+  <div id="jsWrap">
+    <svg width="120" height="120" viewBox="0 0 120 120" style="position:absolute;inset:0;pointer-events:none;">
+      <ellipse cx="60" cy="100" rx="44" ry="14" fill="rgba(10,20,40,0.85)" stroke="rgba(0,212,255,0.25)" stroke-width="1.5"/>
+      <rect x="46" y="38" width="28" height="58" rx="14" fill="url(#gripGradSRO)" stroke="rgba(0,212,255,0.3)" stroke-width="1.2"/>
+      <line x1="50" y1="50" x2="70" y2="50" stroke="rgba(0,212,255,0.12)" stroke-width="1"/>
+      <line x1="50" y1="60" x2="70" y2="60" stroke="rgba(0,212,255,0.12)" stroke-width="1"/>
+      <line x1="50" y1="70" x2="70" y2="70" stroke="rgba(0,212,255,0.12)" stroke-width="1"/>
+      <line x1="50" y1="80" x2="70" y2="80" stroke="rgba(0,212,255,0.12)" stroke-width="1"/>
+      <rect x="50" y="28" width="20" height="14" rx="6" fill="url(#neckGradSRO)" stroke="rgba(0,212,255,0.25)" stroke-width="1"/>
+      <ellipse cx="60" cy="28" rx="18" ry="12" fill="url(#domeGradSRO)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <ellipse cx="55" cy="24" rx="7" ry="4" fill="rgba(255,255,255,0.12)"/>
+      <ellipse cx="60" cy="28" rx="8" ry="5" fill="rgba(0,10,25,0.6)" stroke="rgba(0,212,255,0.15)" stroke-width="1"/>
+      <defs>
+        <linearGradient id="gripGradSRO" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#0a1828"/><stop offset="30%" stop-color="#1a3050"/>
+          <stop offset="70%" stop-color="#1a3050"/><stop offset="100%" stop-color="#0a1828"/>
+        </linearGradient>
+        <linearGradient id="neckGradSRO" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#0a1828"/><stop offset="50%" stop-color="#243a55"/><stop offset="100%" stop-color="#0a1828"/>
+        </linearGradient>
+        <radialGradient id="domeGradSRO" cx="40%" cy="35%">
+          <stop offset="0%" stop-color="#3a6080"/><stop offset="60%" stop-color="#1a3050"/><stop offset="100%" stop-color="#0a1828"/>
+        </radialGradient>
+      </defs>
+    </svg>
+    <div id="joystickThumb"></div>
+    <span id="jsZoneL">&#9664;</span><span id="jsZoneR">&#9654;</span>
+  </div>
+  <button id="bThrust">&#9650;</button>
+  <button id="bFire">&#x1F525;</button>
+  <button id="bSpecial">&#x2605;</button>
+  <div id="zoomBtns">
+    <div class="zBtn" id="zIn">+</div>
+    <div class="zBtn" id="zOut">&#8722;</div>
+  </div>
+</div>
+<div id="shopOv">
+  <div id="shopCard">
+    <h2 id="shopTitle">STARPORT</h2>
+    <div id="shopCredLine"></div>
+    <div id="shopItems"></div>
+    <button id="shopClose">CLOSE STARPORT</button>
+  </div>
+</div>
+<div id="titleScreen">
+  <canvas id="titleCvs"></canvas>
+  <div class="ttl">SPACE RANGER<br>OLYMPICS</div>
+  <div class="tsub">INTERGALACTIC TEAM BATTLE</div>
+  <div id="pwBox">
+    <div class="pw-lbl">SESSION PASSWORD</div>
+    <div id="pwText">loading...</div>
+    <div class="pw-hint">share with all players to join</div>
+  </div>
+  <div id="roleSelect">
+    <input id="nameInput" type="text" placeholder="ENTER YOUR CALLSIGN" maxlength="12" autocomplete="off" spellcheck="false">
+    <h3>SELECT TEAM</h3>
+    <div class="teamRow">
+      <button class="teamBtn" data-team="0" style="color:#ffdd44;border-color:#ffdd44;">YELLOW</button>
+      <button class="teamBtn" data-team="1" style="color:#ff4444;border-color:#ff4444;">RED</button>
+      <button class="teamBtn" data-team="2" style="color:#4488ff;border-color:#4488ff;">BLUE</button>
+      <button class="teamBtn" data-team="3" style="color:#cc44ff;border-color:#cc44ff;">PURPLE</button>
+    </div>
+    <h3>SELECT ROLE</h3>
+    <div class="roleGrid" id="roleGrid"></div>
+    <button id="startBtn">LAUNCH</button>
+  </div>
+</div>
+<script>
+'use strict';
+var WW=6000,WH=6000;
+var TEAM_COLORS=['#ffdd44','#ff4444','#4488ff','#cc44ff'];
+var TEAM_NAMES=['YELLOW','RED','BLUE','PURPLE'];
+var ROLES=[
+  {id:'ranger',     name:'SPACE RANGER',   emoji:'R'},
+  {id:'jockey1',    name:'AST JOCKEY 1',   emoji:'J'},
+  {id:'jockey2',    name:'AST JOCKEY 2',   emoji:'J'},
+  {id:'courier',    name:'WARP COURIER',   emoji:'C'},
+  {id:'deputy1',    name:'DEPUTY 1',       emoji:'D'},
+  {id:'deputy2',    name:'DEPUTY 2',       emoji:'D'},
+  {id:'stealth',    name:'STEALTH',        emoji:'S'},
+  {id:'tow',        name:'TOW SHIP',       emoji:'T'},
+  {id:'vanguard',   name:'VANGUARD',       emoji:'V'},
+  {id:'radar',      name:'RADAR SHIP',     emoji:'X'},
+  {id:'mothership', name:'MOTHERSHIP',     emoji:'M'},
+];
+var ROLE_UPG={
+  ranger:     ['speed','shield','shieldRegen','fireRate'],
+  jockey1:    ['speed','shield','shieldRegen','tractorBeam'],
+  jockey2:    ['speed','shield','shieldRegen','tractorBeam'],
+  courier:    ['speed','shield','shieldRegen','fireRate'],
+  deputy1:    ['speed','shield','shieldRegen','fireRate'],
+  deputy2:    ['speed','shield','shieldRegen','fireRate'],
+  stealth:    ['speed','fireRate','stealthDur'],
+  tow:        ['shield','shieldRegen','towPull'],
+  vanguard:   ['shield','shieldRegen','missileSlot'],
+  radar:      ['speed','shield','shieldRegen','fireRate'],
+  mothership: ['shield','shieldRegen'],
+};
+var UPG_DEF={
+  speed:      {name:'SPEED BOOST',  emoji:'S',desc:'Faster thrust',       cost:150},
+  shield:     {name:'SHIELD CAP',   emoji:'H',desc:'+50 max shield',      cost:200},
+  shieldRegen:{name:'SHIELD REGEN', emoji:'R',desc:'Faster auto-regen',   cost:175},
+  fireRate:   {name:'FIRE RATE',    emoji:'F',desc:'Shoot faster',        cost:150},
+  tractorBeam:{name:'WIDER TRACTOR',emoji:'T',desc:'Larger tow radius',   cost:200},
+  stealthDur: {name:'STEALTH+',     emoji:'G',desc:'Longer invisibility', cost:225},
+  towPull:    {name:'STRONGER TOW', emoji:'W',desc:'Pull faster',         cost:250},
+  missileSlot:{name:'EXTRA MISSILE',emoji:'M',desc:'+1 missile slot',     cost:200},
+};
+var PTS={asteroidHit:25,asteroidCollect:50,warpCore:100,enemyShip:75,missileHit:75};
+var BASES=[{x:350,y:350,team:0},{x:WW-350,y:350,team:1},{x:350,y:WH-350,team:2},{x:WW-350,y:WH-350,team:3}];
+var BH_SPAWNS=[{x:WW/2,y:180},{x:WW/2,y:WH-180},{x:180,y:WH/2},{x:WW-180,y:WH/2}];
+var SP_OFF={x:150,y:0},SHR_OFF={x:0,y:150};
+
+/* PASSWORD */
+var PW_S=[‘nova’,‘warp’,‘orbit’,‘comet’,‘pulsar’,‘nebula’,‘quasar’,‘lunar’,‘solar’,‘cosmic’,‘void’,‘stellar’,‘astro’,‘zenith’,‘apex’,‘vortex’,‘flux’,‘ion’,‘plasma’,‘photon’];
+var PW_R=[‘ensign’,‘cadet’,‘pilot’,‘ranger’,‘captain’,‘major’,‘admiral’,‘commander’,‘warlord’,‘legend’,‘ace’,‘chief’,‘elite’,‘prime’,‘omega’];
+var GAME_PW=PW_S[Math.floor(Math.random()*PW_S.length)]+’-’+PW_R[Math.floor(Math.random()*PW_R.length)]+’-’+(1+Math.floor(Math.random()*99));
+document.getElementById(‘pwText’).textContent=GAME_PW;
+
+/* STATE */
+var gameActive=false,myTeam=0,myRole=‘ranger’,myName=‘RANGER’;
+var camera={x:0,y:0,zoom:1},targetZoom=1;
+var ZOOMS=[0.3,0.5,0.7,1.0,1.4,1.8],zoomIdx=3;
+var alertTimer=0,lastTime=0,specialCD=0,shopOpen=false,shopCooldown=0;
+var player={x:350,y:350,vx:0,vy:0,angle:0,alive:true,shield:10,maxShield:10,shieldRegen:0.002,maxSpeed:5,thrust:0.18,rotSpeed:0.055,fireRate:400,lastShot:0,credits:0,personalPts:0,carrying:null,towTarget:null,stealthActive:false,stealthTimer:0,stealthDur:8000,radarPulse:0,missiles:5,maxMissiles:5,respawnTimer:0,invincible:0,flashTimer:0,team:0,rangerAmmo:10,rangerWarpLoaded:false,rangerCore:null,tractorCore:null,laserConfirm:-1,hitAccum:0,upg:{speed:0,shield:0,shieldRegen:0,fireRate:0,tractorBeam:0,stealthDur:0,towPull:0,missileSlot:0}};
+var teamScores=[0,0,0,0];
+var masterAst={x:WW/2,y:WH/2,r:280,angle:0,rotSpd:0.0003,hp:100000,maxHp:100000,alive:true};
+var asteroids=[],warpCores=[],bullets=[],missilesArr=[],particles=[];
+var blackHoles=BH_SPAWNS.map(function(b,i){return{x:b.x,y:b.y,id:i,r:30,pulse:Math.random()*Math.PI*2,active:true,towedBy:null};});
+var ships=[];
+var motherships=[];
+var harpoons=[];
+var warpNexuses=[];
+var turretBots=[];
+var NEXUS_COLORS=[’#00ff88’,’#ff3344’,’#ffdd00’,’#cc44ff’,’#ff44cc’,’#00ccff’,’#ff8800’];
+var NEXUS_COLOR_NAMES=[‘GREEN’,‘RED’,‘YELLOW’,‘PURPLE’,‘PINK’,‘CYAN’,‘ORANGE’];
+var LASER_ASTEROID_COST=100;
+var doomLasers=[0,1,2,3].map(function(t){return{team:t,asteroidCount:0,built:false,pulse:0,firing:false,fireTimer:0,targetTeam:-1,beamAlpha:0};});
+var teamRestarts=[0,0,0,0];
+var teamEliminated=[false,false,false,false];
+var frozenStarports=[0,0,0,0];
+var frozenShips=[]; // {target: shipRef or ‘player’, until: timestamp}
+
+/* CANVAS */
+var canvas=document.getElementById(‘gameCanvas’);
+var ctx=canvas.getContext(‘2d’);
+var mmCvs=document.getElementById(‘mmCvs’);
+var mmCtx=mmCvs.getContext(‘2d’);
+var VW,VH;
+function resize(){VW=canvas.width=window.innerWidth;VH=canvas.height=window.innerHeight;}
+window.addEventListener(‘resize’,resize);resize();
+
+/* TITLE STARS */
+var tCvs=document.getElementById(‘titleCvs’);
+// Prevent touch on name input from triggering canvas zoom
+var nameInputEl=document.getElementById(‘nameInput’);
+nameInputEl.addEventListener(‘touchstart’,function(e){e.stopPropagation();},{passive:true});
+nameInputEl.addEventListener(‘focus’,function(){nameInputEl.style.fontSize=‘16px’;});
+var tCtx=tCvs.getContext(‘2d’);
+var tStars=[];
+function initTS(){
+tCvs.width=window.innerWidth;tCvs.height=window.innerHeight;tStars=[];
+for(var i=0;i<200;i++) tStars.push({x:Math.random()*tCvs.width,y:Math.random()*tCvs.height,r:Math.random()*1.5+0.3,p:Math.random()*Math.PI*2,sp:0.005+Math.random()*0.02});
+}
+var tAnimId=0;
+function tLoop(){tAnimId=requestAnimationFrame(tLoop);tCtx.clearRect(0,0,tCvs.width,tCvs.height);for(var i=0;i<tStars.length;i++){var s=tStars[i];s.p+=s.sp;var a=0.2+0.8*Math.abs(Math.sin(s.p));tCtx.beginPath();tCtx.arc(s.x,s.y,s.r,0,Math.PI*2);tCtx.fillStyle=‘rgba(180,220,255,’+a+’)’;tCtx.fill();}}
+initTS();tLoop();
+
+/* ROLE SELECT */
+var selTeam=0,selRole=’’;
+(function(){
+var grid=document.getElementById(‘roleGrid’);
+for(var i=0;i<ROLES.length;i++){
+(function(role){
+var btn=document.createElement(‘div’);
+btn.className=‘roleBtn’;btn.dataset.id=role.id;
+btn.innerHTML=’<div style="font-size:16px;margin-bottom:2px">’+role.emoji+’</div><div>’+role.name+’</div>’;
+btn.addEventListener(‘click’,function(){
+var all=document.querySelectorAll(’.roleBtn’);
+for(var j=0;j<all.length;j++) all[j].classList.remove(‘sel’);
+btn.classList.add(‘sel’);selRole=role.id;
+});
+grid.appendChild(btn);
+})(ROLES[i]);
+}
+var tBtns=document.querySelectorAll(’.teamBtn’);
+for(var i=0;i<tBtns.length;i++){
+(function(btn){
+btn.addEventListener(‘click’,function(){
+for(var j=0;j<tBtns.length;j++) tBtns[j].classList.remove(‘sel’);
+btn.classList.add(‘sel’);selTeam=parseInt(btn.dataset.team);
+});
+})(tBtns[i]);
+}
+tBtns[0].classList.add(‘sel’);
+document.getElementById(‘startBtn’).addEventListener(‘click’,function(){
+if(!selRole){showAlert(‘SELECT A ROLE FIRST’);return;}
+var roleNames={ranger:‘RANGER’,jockey1:‘JOCKEY’,jockey2:‘JOCKEY’,courier:‘COURIER’,deputy1:‘DEPUTY’,deputy2:‘DEPUTY’,stealth:‘STEALTH’,tow:‘TOWSHIP’,vanguard:‘VANGUARD’,radar:‘RADAR’,mothership:‘MOTHERSHIP’};
+var nm=document.getElementById(‘nameInput’).value.trim().toUpperCase()||(roleNames[selRole]||selRole.toUpperCase());
+myTeam=selTeam;myRole=selRole;myName=nm;startGame();
+});
+})();
+
+/* WORLD DATA */
+var STARS=[];
+for(var i=0;i<2000;i++){
+var lay=Math.floor(Math.random()*4); // 0=far, 3=near
+STARS.push({
+x:Math.random()*WW, y:Math.random()*WH,
+r:lay===3?Math.random()*2+0.8:lay===2?Math.random()*1.4+0.4:Math.random()*0.9+0.2,
+a:lay===3?0.5+Math.random()*0.5:lay===2?0.3+Math.random()*0.4:0.1+Math.random()*0.3,
+lay:lay,
+twinkle:Math.random()*Math.PI*2,
+twinkleSpd:0.01+Math.random()*0.03,
+});
+}
+var NEBS=[];for(var i=0;i<12;i++) NEBS.push({x:Math.random()*WW,y:Math.random()*WH,r:150+Math.random()*500,h:Math.random()*360,a:0.02+Math.random()*0.04});
+
+/* INPUT */
+var btn={left:false,right:false,thrust:false,fire:false,special:false};
+window.addEventListener(‘keydown’,function(e){if(e.code===‘ArrowLeft’||e.code===‘KeyA’)btn.left=true;if(e.code===‘ArrowRight’||e.code===‘KeyD’)btn.right=true;if(e.code===‘ArrowUp’||e.code===‘KeyW’||e.code===‘Space’)btn.thrust=true;if(e.code===‘KeyF’)btn.fire=true;if(e.code===‘KeyE’)btn.special=true;});
+window.addEventListener(‘keyup’,function(e){if(e.code===‘ArrowLeft’||e.code===‘KeyA’)btn.left=false;if(e.code===‘ArrowRight’||e.code===‘KeyD’)btn.right=false;if(e.code===‘ArrowUp’||e.code===‘KeyW’||e.code===‘Space’)btn.thrust=false;if(e.code===‘KeyF’)btn.fire=false;if(e.code===‘KeyE’)btn.special=false;});
+
+// Always show touch controls (works on both touch and mouse)
+document.getElementById(‘touchCtrl’).style.display=‘block’;
+
+function initJoystick(){
+var wrap=document.getElementById(‘jsWrap’);
+var thumb=document.getElementById(‘joystickThumb’);
+var joyId=-1,ox=0,oy=0;
+function getCenter(){var r=wrap.getBoundingClientRect();ox=r.left+r.width/2;oy=r.top+r.height/2;}
+function applyTouch(t){
+var dx=t.clientX-ox,dy=t.clientY-oy;
+var d=Math.sqrt(dx*dx+dy*dy);
+if(d>56){dx=dx/d*56;dy=dy/d*56;}
+btn.left=(dx<-10);btn.right=(dx>10);
+thumb.style.left=(52+dx-8)+‘px’;thumb.style.top=(20+dy-8)+‘px’;
+}
+function reset(){joyId=-1;btn.left=false;btn.right=false;thumb.classList.remove(‘active’);thumb.style.left=‘52px’;thumb.style.top=‘20px’;}
+wrap.addEventListener(‘touchstart’,function(e){e.preventDefault();e.stopPropagation();if(joyId===-1){joyId=e.changedTouches[0].identifier;getCenter();thumb.classList.add(‘active’);applyTouch(e.changedTouches[0]);}},{passive:false});
+wrap.addEventListener(‘touchmove’,function(e){e.preventDefault();e.stopPropagation();for(var i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===joyId){applyTouch(e.changedTouches[i]);return;}}},{passive:false});
+wrap.addEventListener(‘touchend’,function(e){e.preventDefault();e.stopPropagation();for(var i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===joyId){reset();return;}}},{passive:false});
+wrap.addEventListener(‘touchcancel’,function(e){e.preventDefault();reset();},{passive:false});
+// Mouse fallback for desktop
+var mouseDown=false;
+wrap.addEventListener(‘mousedown’,function(e){mouseDown=true;getCenter();thumb.classList.add(‘active’);applyTouch(e);});
+window.addEventListener(‘mousemove’,function(e){if(mouseDown)applyTouch(e);});
+window.addEventListener(‘mouseup’,function(){if(mouseDown){mouseDown=false;reset();}});
+}
+initJoystick();
+
+function bindBtn(id,key){
+var el=document.getElementById(id);if(!el)return;
+function dn(e){e.preventDefault();e.stopPropagation();btn[key]=true;el.classList.add(‘pressed’);}
+function up(e){e.preventDefault();e.stopPropagation();btn[key]=false;el.classList.remove(‘pressed’);}
+el.addEventListener(‘touchstart’,dn,{passive:false});
+el.addEventListener(‘touchend’,up,{passive:false});
+el.addEventListener(‘touchcancel’,up,{passive:false});
+el.addEventListener(‘mousedown’,dn);el.addEventListener(‘mouseup’,up);el.addEventListener(‘mouseleave’,up);
+}
+bindBtn(‘bThrust’,‘thrust’);bindBtn(‘bFire’,‘fire’);bindBtn(‘bSpecial’,‘special’);
+document.getElementById(‘zIn’).addEventListener(‘click’,function(){zoomIdx=Math.min(ZOOMS.length-1,zoomIdx+1);targetZoom=ZOOMS[zoomIdx];});
+document.getElementById(‘zOut’).addEventListener(‘click’,function(){zoomIdx=Math.max(0,zoomIdx-1);targetZoom=ZOOMS[zoomIdx];});
+
+/* HELPERS */
+function showAlert(txt,dur){document.getElementById(‘alertTxt’).textContent=txt;document.getElementById(‘alertBar’).classList.add(‘show’);alertTimer=dur||2000;}
+function h2r(h){return parseInt(h.slice(1,3),16)+’,’+parseInt(h.slice(3,5),16)+’,’+parseInt(h.slice(5,7),16);}
+function rR(role){var s={ranger:14,jockey1:10,jockey2:10,courier:9,deputy1:10,deputy2:10,stealth:8,tow:16,vanguard:13,radar:11};return s[role]||10;}
+function spawnP(x,y,n,rgb,sp,lf){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,s=(sp||2)*(0.5+Math.random());particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:Math.random()*3+1,rgb:rgb,life:lf||1,decay:0.02+Math.random()*0.02});}}
+function ws(wx,wy){return{x:(wx-camera.x)*camera.zoom,y:(wy-camera.y)*camera.zoom};}
+
+/* GAME START */
+function startGame(){
+cancelAnimationFrame(tAnimId);
+document.getElementById(‘titleScreen’).style.display=‘none’;
+var base=BASES[myTeam];
+player.x=base.x+(Math.random()-0.5)*80;player.y=base.y+(Math.random()-0.5)*80;
+if(myRole===‘tow’){player.maxShield=20;} else {player.maxShield=10;}
+player.alive=true;player.shield=player.maxShield;
+player.team=myTeam;
+targetZoom=ZOOMS[zoomIdx];camera.zoom=targetZoom;
+camera.x=player.x-VW/2/camera.zoom;camera.y=player.y-VH/2/camera.zoom;
+var role=null;for(var i=0;i<ROLES.length;i++){if(ROLES[i].id===myRole){role=ROLES[i];break;}}
+var rb=document.getElementById(‘roleBadge’);
+rb.textContent=(role?role.emoji+’ ‘:’’)+myRole.toUpperCase();
+rb.style.color=TEAM_COLORS[myTeam];rb.style.borderColor=TEAM_COLORS[myTeam]+‘88’;
+var sp=document.getElementById(‘bSpecial’);
+var sl={ranger:’[F]’,jockey1:’[T]’,jockey2:’[T]’,courier:’[P]’,deputy1:’[E]’,deputy2:’[E]’,stealth:’[C]’,tow:’[H]’,vanguard:’[M]’,radar:’[R]’};
+sp.textContent=sl[myRole]||’*’;
+spawnBots();
+spawnMotherships();
+spawnNexuses();
+var pw=document.createElement(‘div’);
+pw.style.cssText=‘position:fixed;bottom:46px;left:50%;transform:translateX(-50%);z-index:19;font-size:8px;letter-spacing:2px;color:rgba(255,220,68,0.4);pointer-events:none;’;
+pw.textContent=’PW: ’+GAME_PW;
+document.body.appendChild(pw);
+gameActive=true;lastTime=performance.now();
+if(myRole===‘ranger’)updateRangerHUD();
+requestAnimationFrame(gameLoop);
+}
+
+/* BOTS */
+function spawnBots(){
+ships=[];
+for(var t=0;t<4;t++){
+var base=BASES[t];
+for(var ri=0;ri<ROLES.length;ri++){
+var role=ROLES[ri];
+if(t===myTeam&&role.id===myRole) continue;
+var a=Math.random()*Math.PI*2,d=60+Math.random()*80;
+var initShield=(role.id===‘tow’)?20:10;
+ships.push({x:base.x+Math.cos(a)*d,y:base.y+Math.sin(a)*d,vx:0,vy:0,angle:Math.random()*Math.PI*2,team:t,role:role.id,alive:true,shield:initShield,maxShield:initShield,r:rR(role.id),color:TEAM_COLORS[t],stealthActive:role.id===‘stealth’,stealthRevealed:false,revealTimer:0,carrying:null,botTimer:Math.random()*2000,botTarget:null,respawnTimer:0,radarPulse:0,hitAccum:0});
+}
+}
+}
+
+function spawnMotherships(){
+motherships=[];harpoons=[];
+for(var t=0;t<4;t++){
+var base=BASES[t];
+// Mothership spawns behind the base, away from center
+var angleFromCenter=Math.atan2(base.y-WH/2,base.x-WW/2);
+motherships.push({
+x:base.x+Math.cos(angleFromCenter)*150,
+y:base.y+Math.sin(angleFromCenter)*150,
+vx:0,vy:0,angle:0,team:t,
+shield:50,maxShield:50,
+hitsReceived:0, // harpoon hits from enemy motherships
+alive:true,
+fireTimer:4000+Math.random()*2000,
+botTimer:0,
+pulse:Math.random()*Math.PI*2,
+decimated:false,
+});
+}
+}
+
+function upMotherships(dt){
+for(var i=0;i<motherships.length;i++){
+var ms=motherships[i];
+if(!ms.alive)continue;
+ms.pulse+=0.02;
+ms.fireTimer-=dt;
+
+```
+// Find nearest enemy mothership to target
+var target=null,td=99999;
+for(var j=0;j<motherships.length;j++){
+  if(j===i||!motherships[j].alive)continue;
+  var dx=motherships[j].x-ms.x,dy=motherships[j].y-ms.y,d=Math.sqrt(dx*dx+dy*dy);
+  if(d<td){td=d;target=motherships[j];}
+}
+if(target){
+  var dx=target.x-ms.x,dy=target.y-ms.y,d=Math.sqrt(dx*dx+dy*dy);
+  // Get close — approach within 400 units to fire
+  if(d>400){
+    ms.angle=Math.atan2(dy,dx);
+    ms.vx+=Math.cos(ms.angle)*0.06;
+    ms.vy+=Math.sin(ms.angle)*0.06;
+  } else if(d<200){
+    // Too close — back off slightly
+    ms.vx-=Math.cos(ms.angle)*0.04;
+    ms.vy-=Math.sin(ms.angle)*0.04;
+  }
+  // Fire harpoon when in range
+  if(ms.fireTimer<=0&&d<600){
+    ms.fireTimer=3000+Math.random()*2000;
+    var fa=Math.atan2(dy,dx);
+    harpoons.push({x:ms.x,y:ms.y,vx:Math.cos(fa)*3,vy:Math.sin(fa)*3,team:ms.team,target:target,age:0,r:8});
+  }
+}
+// Dodge incoming harpoons
+for(var hi=0;hi<harpoons.length;hi++){
+  var h=harpoons[hi];if(h.team===ms.team)continue;
+  var hdx=h.x-ms.x,hdy=h.y-ms.y,hd=Math.sqrt(hdx*hdx+hdy*hdy);
+  if(hd<200){
+    var hangle=Math.atan2(h.vy,h.vx);
+    ms.vx+=Math.cos(hangle+Math.PI/2)*0.6;
+    ms.vy+=Math.sin(hangle+Math.PI/2)*0.6;
+  }
+}
+ms.vx*=0.97;ms.vy*=0.97;
+ms.x+=ms.vx;ms.y+=ms.vy;
+ms.x=Math.max(80,Math.min(WW-80,ms.x));
+ms.y=Math.max(80,Math.min(WH-80,ms.y));
+
+// Bullet damage from enemy ships (50 shots to kill)
+// handled in upBullets — shield decrements there
+
+// Asteroid collision
+for(var ai=asteroids.length-1;ai>=0;ai--){
+  var f=asteroids[ai];
+  var adx=f.x-ms.x,ady=f.y-ms.y;
+  if(Math.sqrt(adx*adx+ady*ady)<f.r+30){
+    ms.shield--;
+    spawnP(f.x,f.y,8,f.cols?f.cols[0]:'200,160,80',3,0.7);
+    if(f.size<2)spawnAst(f.x,f.y,Math.atan2(ady,adx),f.size+1);
+    asteroids.splice(ai,1);
+    if(ms.shield<=0)decimateTeam(ms.team,i);
+    break;
+  }
+}
+```
+
+}
+
+// Update harpoons — travel straight, short range (3 mothership lengths ~180 units)
+for(var i=harpoons.length-1;i>=0;i–){
+var h=harpoons[i];h.age+=dt;
+// 180 world units at speed 3.5 = ~860ms
+if(h.age>860){spawnP(h.x,h.y,4,‘255,100,0’,2,0.5);harpoons.splice(i,1);continue;}
+// Straight flight — no homing
+h.x+=h.vx;h.y+=h.vy;
+spawnP(h.x,h.y,2,‘255,140,0’,2,0.3);
+// Check hit on any enemy mothership
+for(var mi=0;mi<motherships.length;mi++){
+var ms=motherships[mi];
+if(!ms.alive||ms.team===h.team)continue;
+var hdx=h.x-ms.x,hdy=h.y-ms.y;
+if(Math.sqrt(hdx*hdx+hdy*hdy)<35){
+ms.hitsReceived++;
+spawnP(ms.x,ms.y,16,‘255,100,0’,5,0.9);
+showAlert(TEAM_NAMES[ms.team]+’ MOTHERSHIP HIT! (’+ms.hitsReceived+’/3)’,1500);
+if(ms.hitsReceived>=3){
+var ti=motherships.indexOf(ms);
+decimateTeam(ms.team,ti);
+}
+harpoons.splice(i,1);break;
+}
+}
+}
+}
+
+function decimateTeam(team,msIdx){
+var ms=motherships[msIdx];
+ms.alive=false;ms.decimated=true;
+showAlert(TEAM_NAMES[team]+’ TEAM DECIMATED! STARTING OVER!’,5000);
+spawnP(ms.x,ms.y,40,h2r(TEAM_COLORS[team]),6,1);
+// Wipe team — reset all ships, credits, upgrades
+if(team===myTeam){
+player.credits=0;player.maxShield=10;player.shield=10;player.maxSpeed=5;player.fireRate=400;
+player.upg={speed:0,shield:0,shieldRegen:0,fireRate:0,tractorBeam:0,stealthDur:0,towPull:0,missileSlot:0};
+player.rangerWarpLoaded=false;player.rangerAmmo=10;player.rangerCore=null;player.invincible=0;
+var base=BASES[myTeam];player.x=base.x+(Math.random()-0.5)*80;player.y=base.y+(Math.random()-0.5)*80;
+player.vx=0;player.vy=0;player.alive=true;player.shield=10;
+}
+for(var si=0;si<ships.length;si++){if(ships[si].team===team){ships[si].alive=false;ships[si].respawnTimer=10000;}}
+teamScores[team]=Math.max(0,teamScores[team]-1000);
+// Respawn mothership after 15 seconds
+setTimeout(function(){
+if(!gameActive)return;
+var base=BASES[team];
+var angleFromCenter=Math.atan2(base.y-WH/2,base.x-WW/2);
+ms.x=base.x+Math.cos(angleFromCenter)*150;ms.y=base.y+Math.sin(angleFromCenter)*150;
+ms.vx=0;ms.vy=0;ms.shield=50;ms.hitsReceived=0;ms.alive=true;ms.decimated=false;ms.fireTimer=5000;
+showAlert(TEAM_NAMES[team]+’ MOTHERSHIP RETURNED!’,3000);
+},15000);
+}
+
+/* ═══ DOOMSDAY LASER ═══ */
+function fireDoomLaser(fromTeam,toTeam){
+var dl=doomLasers[fromTeam];
+dl.built=false;dl.asteroidCount=0;dl.firing=true;dl.fireTimer=3000;dl.targetTeam=toTeam;dl.beamAlpha=1;
+showAlert(TEAM_NAMES[fromTeam]+’ FIRES DOOMSDAY LASER AT ‘+TEAM_NAMES[toTeam]+’!!!’,4000);
+spawnP(BASES[fromTeam].x,BASES[fromTeam].y,50,‘255,0,0’,6,1);
+// Force restart target team after beam animation
+setTimeout(function(){
+if(!gameActive)return;
+forceRestartTeam(toTeam,fromTeam);
+},2500);
+}
+
+function forceRestartTeam(team,byTeam){
+if(teamEliminated[team])return;
+teamRestarts[team]++;
+showAlert(TEAM_NAMES[team]+’ BASE DESTROYED BY DOOMSDAY LASER! (’+teamRestarts[team]+’/3)’,4000);
+spawnP(BASES[team].x,BASES[team].y,60,h2r(TEAM_COLORS[team]),7,1);
+// Reset team
+if(team===myTeam){
+if(teamRestarts[team]>=3){
+teamEliminated[myTeam]=true;
+player.alive=false;
+showAlert(‘YOUR TEAM HAS BEEN ELIMINATED! YOU ARE NOW A GHOST.’,6000);
+} else {
+player.credits=0;player.shield=player.maxShield;
+player.upg={speed:0,shield:0,shieldRegen:0,fireRate:0,tractorBeam:0,stealthDur:0,towPull:0,missileSlot:0};
+player.rangerWarpLoaded=false;player.rangerCore=null;player.rangerAmmo=10;player.invincible=2000;
+var base=BASES[myTeam];player.x=base.x+(Math.random()-0.5)*80;player.y=base.y+(Math.random()-0.5)*80;
+player.vx=0;player.vy=0;player.alive=true;
+doomLasers[myTeam].asteroidCount=0;doomLasers[myTeam].built=false;
+showAlert(‘RESTARTING… (’+teamRestarts[team]+’/3 BEFORE ELIMINATION)’,3000);
+}
+}
+// Reset bots for this team
+for(var i=0;i<ships.length;i++){
+if(ships[i].team===team){ships[i].alive=false;ships[i].respawnTimer=teamEliminated[team]?999999:8000;}
+}
+if(teamEliminated[team]){
+showAlert(TEAM_NAMES[team]+’ TEAM ELIMINATED! THEY ARE NOW GHOSTS.’,5000);
+}
+teamScores[byTeam]+=500;
+}
+
+function upDoomLasers(dt){
+for(var i=0;i<doomLasers.length;i++){
+var dl=doomLasers[i];
+dl.pulse+=0.04;
+if(dl.firing){
+dl.fireTimer-=dt;
+dl.beamAlpha=Math.max(0,dl.fireTimer/3000);
+if(dl.fireTimer<=0){dl.firing=false;dl.beamAlpha=0;dl.targetTeam=-1;}
+}
+// Bot jockeys on this team auto-deposit if near base
+// (handled in upBots)
+}
+}
+
+function drawDoomLasers(){
+for(var i=0;i<doomLasers.length;i++){
+var dl=doomLasers[i];
+var base=BASES[dl.team];
+var bs=ws(base.x,base.y),z=camera.zoom;
+var col=TEAM_COLORS[dl.team];
+
+```
+// Drop zone circle at base
+ctx.save();
+ctx.strokeStyle=col+(dl.built?'ff':'44');
+ctx.lineWidth=(dl.built?3:1.5)*z;
+ctx.setLineDash([6*z,4*z]);
+ctx.beginPath();ctx.arc(bs.x,bs.y,90*z,0,Math.PI*2);ctx.stroke();
+ctx.setLineDash([]);
+// Progress label
+if(camera.zoom>0.4){
+  ctx.fillStyle=dl.built?col:'rgba(0,200,255,0.7)';
+  ctx.font='bold '+Math.max(6,Math.round(8*z))+'px Orbitron,monospace';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  if(dl.built){
+    var bpulse=0.6+0.4*Math.sin(dl.pulse);
+    ctx.globalAlpha=bpulse;
+    ctx.fillText('DOOMSDAY LASER READY!',bs.x,bs.y+92*z);
+    ctx.globalAlpha=1;
+  } else {
+    ctx.fillText('LASER: '+dl.asteroidCount+'/'+LASER_ASTEROID_COST,bs.x,bs.y+92*z);
+  }
+}
+ctx.restore();
+
+// Draw the laser cannon structure when built
+if(dl.built||dl.firing){
+  var lp=ws(base.x-120,base.y);
+  ctx.save();ctx.translate(lp.x,lp.y);
+  ctx.shadowColor=col;ctx.shadowBlur=16*z;
+  // Barrel
+  ctx.fillStyle='rgba(0,22,42,0.95)';ctx.strokeStyle=col;ctx.lineWidth=2*z;
+  ctx.fillRect(-6*z,-20*z,12*z,40*z);ctx.strokeRect(-6*z,-20*z,12*z,40*z);
+  ctx.fillStyle=col+'88';ctx.fillRect(-3*z,-28*z,6*z,12*z);
+  // Energy glow
+  var ep=0.5+0.5*Math.sin(dl.pulse*2);
+  ctx.fillStyle=col+(dl.built?Math.round(ep*255).toString(16).padStart(2,'0'):'44');
+  ctx.beginPath();ctx.arc(0,0,10*z*ep,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+// Firing beam
+if(dl.firing&&dl.targetTeam>=0){
+  var fromBase=ws(base.x,base.y);
+  var toBase=ws(BASES[dl.targetTeam].x,BASES[dl.targetTeam].y);
+  ctx.save();
+  ctx.globalAlpha=dl.beamAlpha;
+  ctx.shadowColor=col;ctx.shadowBlur=30;
+  ctx.strokeStyle=col;ctx.lineWidth=8*z*dl.beamAlpha;
+  ctx.beginPath();ctx.moveTo(fromBase.x,fromBase.y);ctx.lineTo(toBase.x,toBase.y);ctx.stroke();
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=3*z*dl.beamAlpha;
+  ctx.beginPath();ctx.moveTo(fromBase.x,fromBase.y);ctx.lineTo(toBase.x,toBase.y);ctx.stroke();
+  ctx.restore();
+  spawnP(toBase.x/z,toBase.y/z,5,'255,50,0',4,0.6);
+}
+```
+
+}
+}
+
+function isShipFrozen(ref){
+var now=performance.now();
+for(var i=0;i<frozenShips.length;i++){if(frozenShips[i].target===ref&&frozenShips[i].until>now)return true;}
+return false;
+}
+function upFrozenShips(){
+var now=performance.now();
+// Remove expired
+for(var i=frozenShips.length-1;i>=0;i–){if(frozenShips[i].until<=now)frozenShips.splice(i,1);}
+// Apply slow to frozen bot ships — cap their velocity
+for(var i=0;i<frozenShips.length;i++){
+var s=frozenShips[i].target;
+if(!s||s===‘player’)continue;
+s.vx*=0.85;s.vy*=0.85;
+var spd=Math.sqrt(s.vx*s.vx+s.vy*s.vy);
+if(spd>0.8){s.vx=s.vx/spd*0.8;s.vy=s.vy/spd*0.8;}
+}
+}
+function spawnNexuses(){
+warpNexuses=[];turretBots=[];
+for(var t=0;t<4;t++){
+var base=BASES[t];
+// Pick starting nexus color — first color in palette
+var colorIdx=0;
+// Place 3 nexuses in a triangle near base
+var offsets=[{x:-80,y:-80},{x:80,y:-80},{x:0,y:60}];
+for(var n=0;n<3;n++){
+warpNexuses.push({
+team:t,
+x:base.x+offsets[n].x,
+y:base.y+offsets[n].y,
+r:28,
+colorIdx:colorIdx,
+color:NEXUS_COLORS[colorIdx],
+colorName:NEXUS_COLOR_NAMES[colorIdx],
+filled:false,
+pulse:Math.random()*Math.PI*2,
+});
+}
+}
+}
+
+function getTeamNexusColor(team){
+for(var i=0;i<warpNexuses.length;i++){
+if(warpNexuses[i].team===team)return warpNexuses[i].color;
+}
+return ‘#ffffff’;
+}
+
+function advanceNexusColor(team){
+// Find current colorIdx for this team
+var cur=-1;
+for(var i=0;i<warpNexuses.length;i++){
+if(warpNexuses[i].team===team){cur=warpNexuses[i].colorIdx;break;}
+}
+var next=(cur+1)%NEXUS_COLORS.length;
+for(var i=0;i<warpNexuses.length;i++){
+if(warpNexuses[i].team===team){
+warpNexuses[i].colorIdx=next;
+warpNexuses[i].color=NEXUS_COLORS[next];
+warpNexuses[i].colorName=NEXUS_COLOR_NAMES[next];
+warpNexuses[i].filled=false;
+}
+}
+}
+
+function checkNexusDelivery(team){
+// Count how many nexuses for this team are filled
+var filled=0,total=0;
+for(var i=0;i<warpNexuses.length;i++){
+if(warpNexuses[i].team!==team)continue;
+total++;
+if(warpNexuses[i].filled)filled++;
+}
+if(filled>=total){
+// All filled — spawn turret bot!
+spawnTurretBot(team);
+advanceNexusColor(team);
+var newCol=getTeamNexusColor(team);
+var colName=NEXUS_COLOR_NAMES[warpNexuses.filter(function(n){return n.team===team;})[0].colorIdx];
+if(team===myTeam){
+showAlert(‘TURRET BUILT! NEXT: DELIVER ‘+colName+’ CORES!’,3000);
+}
+spawnP(BASES[team].x,BASES[team].y,30,h2r(TEAM_COLORS[team]),4,1);
+teamScores[team]+=200;
+}
+}
+
+function spawnTurretBot(team){
+// Max 5 turrets per team
+var count=0;
+for(var i=0;i<turretBots.length;i++){if(turretBots[i].team===team&&turretBots[i].alive)count++;}
+if(count>=5)return;
+var base=BASES[team];
+turretBots.push({
+x:base.x+(Math.random()-0.5)*100,
+y:base.y+(Math.random()-0.5)*100,
+vx:0,vy:0,angle:0,team:team,alive:true,
+shield:30,maxShield:30,
+fireTimer:500+Math.random()*500,
+pulse:0,
+color:TEAM_COLORS[team],
+});
+}
+
+function upNexuses(dt){
+for(var i=0;i<warpNexuses.length;i++) warpNexuses[i].pulse+=0.04;
+
+// Ranger auto-deliver: if player is ranger and carrying a matching core, deliver on touch
+if(myRole===‘ranger’&&player.rangerWarpLoaded&&player.rangerCore){
+var coreColor=player.rangerCore.color;
+for(var i=0;i<warpNexuses.length;i++){
+var nx=warpNexuses[i];
+if(nx.team!==myTeam||nx.filled)continue;
+if(nx.color!==coreColor)continue;
+var dx=player.x-nx.x,dy=player.y-nx.y;
+if(Math.sqrt(dx*dx+dy*dy)<nx.r+16){
+nx.filled=true;
+// Consume the warp core load
+player.rangerWarpLoaded=false;player.rangerCore=null;player.rangerAmmo=0;player.invincible=0;
+spawnP(nx.x,nx.y,20,h2r(nx.color),4,0.9);
+player.credits+=50;player.personalPts+=100;teamScores[myTeam]+=100;
+checkNexusDelivery(myTeam);
+var remaining=0;
+for(var j=0;j<warpNexuses.length;j++){if(warpNexuses[j].team===myTeam&&!warpNexuses[j].filled)remaining++;}
+if(remaining>0)showAlert(‘NEXUS FILLED! ‘+remaining+’ MORE NEEDED’,1500);
+updateRangerHUD();
+break;
+}
+}
+}
+}
+
+function upTurretBots(dt){
+for(var i=turretBots.length-1;i>=0;i–){
+var t=turretBots[i];
+if(!t.alive){turretBots.splice(i,1);continue;}
+t.pulse+=0.03;
+// Head toward master asteroid, hold at range, fire
+if(masterAst.alive){
+var baseAngle=Math.atan2(BASES[t.team].y-masterAst.y,BASES[t.team].x-masterAst.x);
+var orbitX=masterAst.x+Math.cos(baseAngle)*(masterAst.r+120);
+var orbitY=masterAst.y+Math.sin(baseAngle)*(masterAst.r+120);
+var dx=orbitX-t.x,dy=orbitY-t.y,d=Math.sqrt(dx*dx+dy*dy);
+if(d>40){t.angle=Math.atan2(dy,dx);t.vx+=Math.cos(t.angle)*0.15;t.vy+=Math.sin(t.angle)*0.15;}
+t.vx*=0.94;t.vy*=0.94;
+// Fire at asteroid
+var distToAst=Math.sqrt((masterAst.x-t.x)*(masterAst.x-t.x)+(masterAst.y-t.y)*(masterAst.y-t.y));
+t.fireTimer-=dt;
+if(t.fireTimer<=0&&distToAst<masterAst.r+250){
+t.fireTimer=350+Math.random()*200;
+var fa=Math.atan2(masterAst.y-t.y,masterAst.x-t.x);
+bullets.push({x:t.x+Math.cos(fa)*20,y:t.y+Math.sin(fa)*20,vx:Math.cos(fa)*9,vy:Math.sin(fa)*9,team:t.team,owner:‘turret’,life:0.6,r:4});
+}
+}
+t.x+=t.vx;t.y+=t.vy;
+t.x=Math.max(20,Math.min(WW-20,t.x));t.y=Math.max(20,Math.min(WH-20,t.y));
+
+```
+// Bullet damage handled in upBullets
+// Asteroid collision
+for(var ai=asteroids.length-1;ai>=0;ai--){
+  var f=asteroids[ai];
+  var adx=f.x-t.x,ady=f.y-t.y;
+  if(Math.sqrt(adx*adx+ady*ady)<f.r+12){
+    t.shield--;spawnP(f.x,f.y,6,f.cols?f.cols[0]:'200,160,80',2,0.6);
+    if(f.size<2)spawnAst(f.x,f.y,Math.atan2(ady,adx),f.size+1);
+    asteroids.splice(ai,1);
+    if(t.shield<=0){t.alive=false;spawnP(t.x,t.y,20,h2r(t.color),4,0.8);}
+    break;
+  }
+}
+```
+
+}
+}
+
+function drawNexuses(){
+for(var i=0;i<warpNexuses.length;i++){
+var nx=warpNexuses[i];
+var s=ws(nx.x,nx.y),z=camera.zoom;
+var col=nx.color;
+var pulse=nx.pulse;
+ctx.save();
+// Outer glow ring
+ctx.shadowColor=col;ctx.shadowBlur=(nx.filled?20:12)*z;
+// Fill glow if filled
+if(nx.filled){
+ctx.fillStyle=col+‘44’;
+ctx.beginPath();ctx.arc(s.x,s.y,nx.r*z,0,Math.PI*2);ctx.fill();
+}
+// Main ring
+ctx.strokeStyle=nx.filled?col:col+‘88’;
+ctx.lineWidth=(nx.filled?3:2)*z;
+var pr=nx.r*z*(0.9+0.1*Math.sin(pulse));
+ctx.beginPath();ctx.arc(s.x,s.y,pr,0,Math.PI*2);ctx.stroke();
+// Inner dashed ring
+ctx.strokeStyle=col+‘55’;ctx.lineWidth=1*z;ctx.setLineDash([4*z,4*z]);
+ctx.beginPath();ctx.arc(s.x,s.y,pr*0.65,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+// Filled core visual
+if(nx.filled){
+ctx.fillStyle=col;ctx.beginPath();ctx.arc(s.x,s.y,8*z,0,Math.PI*2);ctx.fill();
+}
+// Label — only show for player’s own team when not filled
+if(nx.team===myTeam&&!nx.filled&&camera.zoom>0.5){
+ctx.fillStyle=col;ctx.font=’bold ’+Math.max(6,Math.round(7*z))+‘px Orbitron,monospace’;
+ctx.textAlign=‘center’;ctx.textBaseline=‘top’;
+ctx.fillText(nx.colorName,s.x,s.y+nx.r*z+3*z);
+}
+ctx.restore();
+}
+}
+
+function drawTurretBots(){
+for(var i=0;i<turretBots.length;i++){
+var t=turretBots[i];if(!t.alive)continue;
+var s=ws(t.x,t.y),z=camera.zoom,S=z*0.9;
+var col=t.color;
+ctx.save();ctx.translate(s.x,s.y);ctx.rotate(t.angle+Math.PI/2);
+ctx.shadowColor=col;ctx.shadowBlur=10*z;
+// Small fighter hull
+ctx.beginPath();ctx.moveTo(0,-12*S);ctx.lineTo(-7*S,8*S);ctx.lineTo(-3*S,5*S);ctx.lineTo(0,7*S);ctx.lineTo(3*S,5*S);ctx.lineTo(7*S,8*S);ctx.closePath();
+ctx.fillStyle=‘rgba(0,22,42,0.9)’;ctx.fill();
+ctx.strokeStyle=col;ctx.lineWidth=1.8*z;ctx.stroke();
+// Cannon on nose
+ctx.fillStyle=col;ctx.fillRect(-1.5*S,-14*S,3*S,5*S);
+// Cockpit
+ctx.fillStyle=col+‘88’;ctx.beginPath();ctx.arc(0,-3*S,3*S,0,Math.PI*2);ctx.fill();
+// Shield ring
+var sp=t.shield/t.maxShield;
+ctx.strokeStyle=‘rgba(0,180,255,’+(0.2+sp*0.5)+’)’;ctx.lineWidth=2*z;
+ctx.beginPath();ctx.arc(0,0,16*z,0,Math.PI*2);ctx.stroke();
+ctx.strokeStyle=‘rgba(0,180,255,0.85)’;ctx.lineWidth=2.5*z;
+ctx.beginPath();ctx.arc(0,0,16*z,-Math.PI/2,-Math.PI/2+sp*Math.PI*2);ctx.stroke();
+ctx.restore();
+// Label
+if(camera.zoom>0.5){
+ctx.save();ctx.fillStyle=col;ctx.font=’bold ’+Math.max(5,Math.round(6*z))+‘px Orbitron,monospace’;
+ctx.textAlign=‘center’;ctx.textBaseline=‘bottom’;
+ctx.fillText(‘TURRET’,s.x,s.y-18*z);ctx.restore();
+}
+}
+}
+
+function drawHarpoons(){
+for(var i=0;i<harpoons.length;i++){
+var h=harpoons[i],s=ws(h.x,h.y),z=camera.zoom;
+var col=TEAM_COLORS[h.team];
+var a=Math.atan2(h.vy,h.vx);
+ctx.save();ctx.translate(s.x,s.y);ctx.rotate(a);
+ctx.shadowColor=col;ctx.shadowBlur=10*z;
+// Harpoon shaft
+ctx.strokeStyle=col;ctx.lineWidth=2.5*z;
+ctx.beginPath();ctx.moveTo(-12*z,0);ctx.lineTo(8*z,0);ctx.stroke();
+// Harpoon tip
+ctx.fillStyle=col;
+ctx.beginPath();ctx.moveTo(8*z,0);ctx.lineTo(14*z,-3*z);ctx.lineTo(14*z,3*z);ctx.closePath();ctx.fill();
+// Trail glow
+ctx.strokeStyle=col+‘44’;ctx.lineWidth=5*z;
+ctx.beginPath();ctx.moveTo(-12*z,0);ctx.lineTo(-20*z,0);ctx.stroke();
+ctx.restore();
+}
+}
+
+function drawMothership(ms){
+if(!ms.alive)return;
+var s=ws(ms.x,ms.y),z=camera.zoom,col=TEAM_COLORS[ms.team],pulse=ms.pulse,S=z*1.8;
+ctx.save();ctx.translate(s.x,s.y);ctx.rotate(ms.angle+Math.PI/2);
+ctx.shadowColor=col;ctx.shadowBlur=20*z;
+for(var fi=0;fi<3;fi++){
+var ox=(fi===0?0:fi===1?-14:14)*S*0.7,oy=(fi===0?-8:6)*S*0.7;
+ctx.save();ctx.translate(ox,oy);ctx.scale(fi===0?1.0:0.75,fi===0?1.0:0.75);
+ctx.beginPath();ctx.moveTo(0,-16*S);ctx.lineTo(-10*S,10*S);ctx.lineTo(-4*S,6*S);ctx.lineTo(0,9*S);ctx.lineTo(4*S,6*S);ctx.lineTo(10*S,10*S);ctx.closePath();
+ctx.fillStyle=‘rgba(0,22,42,0.95)’;ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=(fi===0?2.5:1.8)*z;ctx.stroke();
+ctx.beginPath();ctx.arc(0,-5*S,fi===0?5*S:3.5*S,0,Math.PI*2);ctx.fillStyle=col+‘88’;ctx.fill();
+ctx.fillStyle=col+‘2a’;ctx.beginPath();ctx.moveTo(-4*S,0);ctx.lineTo(-12*S,-8*S);ctx.lineTo(-10*S,4*S);ctx.fill();
+ctx.beginPath();ctx.moveTo(4*S,0);ctx.lineTo(12*S,-8*S);ctx.lineTo(10*S,4*S);ctx.fill();
+ctx.restore();
+}
+ctx.strokeStyle=col+‘66’;ctx.lineWidth=1.5*z;
+ctx.beginPath();ctx.moveTo(-14*S*0.7,6*S*0.7);ctx.lineTo(0,-4*S);ctx.lineTo(14*S*0.7,6*S*0.7);ctx.stroke();
+var shPct=ms.shield/ms.maxShield;
+var ringCol=shPct>0.5?‘rgba(0,180,255,’:‘rgba(255,60,60,’;
+ctx.beginPath();ctx.arc(0,0,32*z*(0.9+0.1*Math.sin(pulse)),0,Math.PI*2);
+ctx.strokeStyle=ringCol+(0.2+shPct*0.4)+’)’;ctx.lineWidth=3*z;ctx.stroke();
+ctx.beginPath();ctx.arc(0,0,32*z*(0.9+0.1*Math.sin(pulse)),-Math.PI/2,-Math.PI/2+shPct*Math.PI*2);
+ctx.strokeStyle=ringCol+‘0.9)’;ctx.lineWidth=4*z;ctx.stroke();
+ctx.restore();
+if(camera.zoom>0.3){
+ctx.save();ctx.fillStyle=col;ctx.font=‘bold ‘+Math.max(7,Math.round(9*z))+‘px Orbitron,monospace’;ctx.textAlign=‘center’;ctx.textBaseline=‘bottom’;
+ctx.fillText(TEAM_NAMES[ms.team]+’ MOTHERSHIP’,s.x,s.y-38*z);
+ctx.font=Math.max(6,Math.round(7*z))+‘px Orbitron,monospace’;ctx.fillStyle=shPct>0.5?col:’#ff4444’;
+ctx.fillText(‘SHIELD ‘+ms.shield+’/’+ms.maxShield+’  HITS ‘+ms.hitsReceived+’/3’,s.x,s.y-28*z);
+ctx.restore();
+}
+}
+
+/* SHOP */
+function openShop(){
+var base=BASES[myTeam],spx=base.x+SP_OFF.x,spy=base.y+SP_OFF.y;
+var dx=player.x-spx,dy=player.y-spy;
+if(!gameActive||Math.sqrt(dx*dx+dy*dy)>120){showAlert(‘FLY TO YOUR STARPORT’);return;}
+if(frozenStarports[myTeam]>performance.now()){
+var remaining=Math.ceil((frozenStarports[myTeam]-performance.now())/1000);
+showAlert(’STARPORT FROZEN BY ENEMY STEALTH! ‘+remaining+‘s’,1500);return;
+}
+buildShop();document.getElementById(‘shopOv’).classList.add(‘show’);shopOpen=true;
+}
+function closeShop(){
+document.getElementById(‘shopOv’).classList.remove(‘show’);
+shopOpen=false;
+shopCooldown=6000;
+// Push player away from starport so they don’t immediately re-trigger
+var base=BASES[myTeam],spx=base.x+SP_OFF.x,spy=base.y+SP_OFF.y;
+var adx=player.x-spx,ady=player.y-spy;
+var ad=Math.sqrt(adx*adx+ady*ady)||1;
+// Move player 100 units away from starport
+player.x=spx+adx/ad*100;
+player.y=spy+ady/ad*100;
+player.vx=adx/ad*2;
+player.vy=ady/ad*2;
+}
+document.getElementById(‘shopClose’).addEventListener(‘click’,closeShop);
+function buildShop(){
+var col=TEAM_COLORS[myTeam];
+document.getElementById(‘shopCard’).style.borderColor=col+‘88’;
+document.getElementById(‘shopTitle’).style.color=col;
+document.getElementById(‘shopCredLine’).textContent=‘CREDITS: $’+player.credits;
+var avail=ROLE_UPG[myRole]||[],cont=document.getElementById(‘shopItems’);
+cont.innerHTML=’’;
+for(var i=0;i<avail.length;i++){
+(function(key){
+var upg=UPG_DEF[key],lvl=player.upg[key]||0,maxL=3,cost=upg.cost*(lvl+1);
+var stars=’’;for(var s=0;s<maxL;s++) stars+=(s<lvl?’*’:‘o’);
+var canBuy=lvl<maxL&&player.credits>=cost;
+var div=document.createElement(‘div’);div.className=‘sitem’;
+div.style.border=‘1px solid ‘+col+‘33’;div.style.background=‘rgba(0,0,0,0.3)’;
+div.innerHTML=’<div class="sico">’+upg.emoji+’</div><div class="sinf"><div class="snm">’+upg.name+’ ‘+stars+’</div><div class="sds">’+upg.desc+’</div></div><div style="text-align:right"><div class="spr" style="color:'+col+'">$’+cost+’</div><button class="sbuy" data-key="'+key+'" data-cost="'+cost+'" style="color:'+col+';border-color:'+col+'44;background:rgba(0,0,0,0.4)'+(canBuy?'':';opacity:0.35;cursor:not-allowed')+'">’+(lvl>=maxL?‘MAX’:‘BUY’)+’</button></div>’;
+cont.appendChild(div);
+})(avail[i]);
+}
+if(myRole===‘vanguard’){
+var canM=player.credits>=100;
+var md=document.createElement(‘div’);md.className=‘sitem’;md.style.border=‘1px solid ‘+col+‘33’;md.style.background=‘rgba(0,0,0,0.3)’;
+md.innerHTML=’<div class="sico">M</div><div class="sinf"><div class="snm">MISSILES (’+player.missiles+’/’+player.maxMissiles+’)</div><div class="sds">Refill 5 missiles</div></div><div style="text-align:right"><div class="spr" style="color:'+col+'">$100</div><button class="sbuy" data-key="missiles" data-cost="100" style="color:'+col+';border-color:'+col+'44;background:rgba(0,0,0,0.4)'+(canM?'':';opacity:0.35;cursor:not-allowed')+'">BUY</button></div>’;
+cont.appendChild(md);
+}
+cont.querySelectorAll(’.sbuy’).forEach(function(b){
+b.addEventListener(‘click’,function(){
+var key=b.dataset.key,cost=parseInt(b.dataset.cost);
+if(player.credits<cost){showAlert(‘NOT ENOUGH CREDITS’);return;}
+player.credits-=cost;
+if(key===‘missiles’){player.missiles=Math.min(player.maxMissiles+5,player.missiles+5);player.maxMissiles=Math.max(player.maxMissiles,player.missiles);}
+else{player.upg[key]=(player.upg[key]||0)+1;if(key===‘speed’)player.maxSpeed+=1;if(key===‘shield’){player.maxShield+=5;player.shield=Math.min(player.shield+5,player.maxShield);}if(key===‘shieldRegen’)player.shieldRegen+=0.015;if(key===‘fireRate’)player.fireRate=Math.max(100,player.fireRate-60);}
+showAlert(‘UPGRADE PURCHASED’,1200);buildShop();
+});
+});
+}
+
+/* ASTEROID CASCADE */
+// Asteroid color palettes per size
+var AST_COLS=[
+// Large — rocky browns/grays
+[[‘160,120,70’,‘55,35,12’],[‘140,110,80’,‘45,28,10’],[‘130,100,60’,‘50,32,15’],[‘150,130,90’,‘60,40,18’]],
+// Medium — more variety
+[[‘180,145,90’,‘80,55,20’],[‘160,80,60’,‘70,30,20’],[‘120,140,100’,‘40,55,25’],[‘170,150,110’,‘65,45,15’]],
+// Small — bright varied
+[[‘200,170,110’,‘100,75,30’],[‘220,140,80’,‘110,60,20’],[‘160,200,120’,‘60,90,35’],[‘180,120,180’,‘80,40,80’],[‘140,180,220’,‘40,70,100’]],
+];
+function randAstCols(size){var pool=AST_COLS[size];return pool[Math.floor(Math.random()*pool.length)];}
+
+function spawnAst(x,y,hitAngle,size){
+var cfg=[{r:30,spd:1.2},{r:16,spd:1.5},{r:8,spd:1.5}];
+var c=cfg[size],count=size===0?1:2;
+for(var i=0;i<count;i++){
+var baseAngle=hitAngle+(Math.random()-0.5)*Math.PI*0.5;
+if(count===2) baseAngle=hitAngle+(i===0?-0.4:0.4)+(Math.random()-0.5)*0.2;
+var spd=c.spd*(0.8+Math.random()*0.3);
+asteroids.push({
+x:x,y:y,
+vx:Math.cos(baseAngle)*spd,
+vy:Math.sin(baseAngle)*spd,
+angle:Math.random()*Math.PI*2,
+spin:(Math.random()-0.5)*(size===2?0.05:0.03),
+r:c.r*(0.8+Math.random()*0.4),
+size:size,hp:1,
+tractored:false,tractorOwner:null,
+hasCore:size===2&&Math.random()<0.20,
+seed:Math.random()*1000,
+cols:randAstCols(size),
+});
+}
+}
+
+var WCORE_COLORS=[’#00ff88’,’#ff3344’,’#ffdd00’,’#cc44ff’,’#ff44cc’,’#00ccff’,’#ff8800’,’#44ff44’,’#ff66aa’,’#aaffee’];
+function randCoreColor(){return WCORE_COLORS[Math.floor(Math.random()*WCORE_COLORS.length)];}
+function mkCore(x,y,vx,vy){
+var col=randCoreColor();
+var idx=NEXUS_COLORS.indexOf(col);
+return{x:x,y:y,vx:vx,vy:vy,r:9,pulse:0,carried:false,color:col,colorName:idx>=0?NEXUS_COLOR_NAMES[idx]:col};
+}
+function shootBullet(){
+var now=performance.now();
+if(!player.alive)return;
+if(myRole===‘courier’&&player.carrying)return;
+if(myRole===‘tow’&&player.towTarget)return;
+
+if(myRole===‘ranger’){
+// Ranger needs warp core ammo
+if(player.rangerAmmo<=0){
+// Out of ammo — slow single shot every 5 seconds, warn player
+if(now-player.lastShot<5000)return;
+player.lastShot=now;
+showAlert(‘NO WARP CORE! GET ONE FROM COURIER! (slow fire)’,1800);
+var spd=9;
+bullets.push({x:player.x+Math.cos(player.angle)*20,y:player.y+Math.sin(player.angle)*20,vx:Math.cos(player.angle)*spd+player.vx*0.3,vy:Math.sin(player.angle)*spd+player.vy*0.3,team:myTeam,owner:‘player’,life:1,r:4});
+spawnP(player.x,player.y,4,‘100,100,100’,2,0.4);
+return;
+}
+// Has ammo — rapid fire
+var fr=player.rangerWarpLoaded?150:player.fireRate;
+if(now-player.lastShot<fr)return;
+player.lastShot=now;
+player.rangerAmmo–;
+var spd=9;
+// Warp core loaded = powered shot with glow
+var col=player.rangerWarpLoaded?‘0,220,255’:‘255,200,80’;
+var r=player.rangerWarpLoaded?6:4;
+bullets.push({x:player.x+Math.cos(player.angle)*20,y:player.y+Math.sin(player.angle)*20,vx:Math.cos(player.angle)*spd+player.vx*0.3,vy:Math.sin(player.angle)*spd+player.vy*0.3,team:myTeam,owner:‘player’,life:1,r:r,powered:player.rangerWarpLoaded});
+spawnP(player.x,player.y,player.rangerWarpLoaded?8:4,col,3,0.5);
+// Update HUD ammo display
+updateRangerHUD();
+if(player.rangerAmmo<=0){
+player.rangerWarpLoaded=false;
+player.rangerCore=null;
+player.invincible=0; // lose asteroid immunity
+showAlert(‘WARP CORE DEPLETED! GET ANOTHER FROM COURIER!’,2500);
+} else if(player.rangerAmmo<=3){
+showAlert(‘LOW AMMO: ‘+player.rangerAmmo+’ SHOTS LEFT!’,1000);
+}
+return;
+}
+
+// All other roles — normal fire
+if(now-player.lastShot<player.fireRate)return;
+player.lastShot=now;
+var spd=9;
+bullets.push({x:player.x+Math.cos(player.angle)*20,y:player.y+Math.sin(player.angle)*20,vx:Math.cos(player.angle)*spd+player.vx*0.3,vy:Math.sin(player.angle)*spd+player.vy*0.3,team:myTeam,owner:‘player’,life:1,r:4});
+spawnP(player.x,player.y,4,‘255,200,80’,3,0.5);
+// Stealth ship briefly reveals when firing
+if(myRole===‘stealth’&&player.stealthActive){
+player.stealthActive=false;
+player.stealthTimer=0;
+setTimeout(function(){
+if(myRole===‘stealth’)player.stealthActive=true;
+player.stealthTimer=player.stealthDur+(player.upg.stealthDur||0)*3000;
+},2000);
+showAlert(‘DECLOAKED! RE-CLOAKING IN 2s’,800);
+}
+}
+
+function updateRangerHUD(){
+if(myRole!==‘ranger’)return;
+var el=document.getElementById(‘rangerAmmoHUD’);
+if(!el){
+el=document.createElement(‘div’);el.id=‘rangerAmmoHUD’;
+el.style.cssText=‘position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:22;text-align:center;pointer-events:none;padding:4px 14px;border-radius:5px;font-size:9px;letter-spacing:2px;font-family:Orbitron,monospace;border:1px solid;’;
+document.body.appendChild(el);
+}
+var needColor=getTeamNexusColor(myTeam);
+var filled=0,total=0;
+for(var i=0;i<warpNexuses.length;i++){if(warpNexuses[i].team===myTeam){total++;if(warpNexuses[i].filled)filled++;}}
+var colName=NEXUS_COLOR_NAMES[warpNexuses.filter(function(n){return n.team===myTeam;})[0].colorIdx]||’?’;
+if(player.rangerWarpLoaded&&player.rangerCore&&player.rangerCore.color===needColor){
+el.style.color=needColor;el.style.borderColor=needColor+‘88’;el.style.background=‘rgba(0,10,20,0.88)’;
+el.textContent=‘DELIVER ‘+colName+’ CORE TO NEXUS  (’+filled+’/’+total+’ FILLED)’;
+} else if(player.rangerWarpLoaded&&player.rangerCore){
+el.style.color=’#ffaa00’;el.style.borderColor=‘rgba(255,170,0,0.5)’;el.style.background=‘rgba(30,15,0,0.88)’;
+el.textContent=‘WRONG COLOR! NEED ‘+colName+’  AMMO: ‘+player.rangerAmmo;
+} else {
+el.style.color=needColor;el.style.borderColor=needColor+‘66’;el.style.background=‘rgba(0,10,20,0.88)’;
+el.textContent=‘FIND ‘+colName+’ WARP CORE  (’+filled+’/’+total+’ NEXUSES FILLED)’;
+}
+}
+function shootMissile(){
+if(player.missiles<=0){showAlert(‘NO MISSILES - BUY AT STARPORT’);return;}
+player.missiles–;
+var target=null,bd=99999;
+for(var i=0;i<ships.length;i++){var s=ships[i];if(s.team===myTeam||!s.alive||s.stealthActive)continue;var dx=s.x-player.x,dy=s.y-player.y,d=Math.sqrt(dx*dx+dy*dy);if(d<bd){bd=d;target=s;}}
+missilesArr.push({x:player.x,y:player.y,vx:Math.cos(player.angle)*4,vy:Math.sin(player.angle)*4,target:target,r:5,team:myTeam,age:0});
+showAlert(‘MISSILE LAUNCHED’,800);
+}
+
+/* SPECIAL */
+function doSpecial(){
+var now=performance.now();
+if(now<specialCD)return;
+if(myRole===‘jockey1’||myRole===‘jockey2’){
+var best=null,bd=99999;
+for(var i=0;i<asteroids.length;i++){var f=asteroids[i];if(f.size!==2)continue;var dx=f.x-player.x,dy=f.y-player.y,d=Math.sqrt(dx*dx+dy*dy);if(d<bd&&d<350+(player.upg.tractorBeam||0)*60){bd=d;best=f;}}
+if(best){best.tractored=true;best.tractorOwner=‘player’;showAlert(‘TRACTOR LOCKED’,600);}else showAlert(‘NO SMALL ASTEROIDS IN RANGE’,800);
+specialCD=now+300;
+} else if(myRole===‘ranger’){
+// Ranger: pick up a nearby warp core directly
+var bwr=null,bwrd=99999;
+for(var i=0;i<warpCores.length;i++){var w=warpCores[i];if(w.carried)continue;var dx=w.x-player.x,dy=w.y-player.y,d=Math.sqrt(dx*dx+dy*dy);if(d<bwrd&&d<120){bwrd=d;bwr=w;}}
+if(bwr){
+bwr.carried=true;
+warpCores.splice(warpCores.indexOf(bwr),1);
+player.rangerWarpLoaded=true;player.rangerAmmo=10;
+player.rangerCore=bwr;
+player.invincible=99999999;
+showAlert(‘WARP CORE LOADED! RAPID FIRE + ASTEROID SHIELD!’,2500);
+updateRangerHUD();
+} else showAlert(‘NO WARP CORE NEARBY’,800);
+} else if(myRole===‘courier’){
+if(!player.carrying){
+var bw=null,bwd=99999;
+for(var i=0;i<warpCores.length;i++){var w=warpCores[i];if(w.carried)continue;var dx=w.x-player.x,dy=w.y-player.y,d=Math.sqrt(dx*dx+dy*dy);if(d<bwd&&d<90){bwd=d;bw=w;}}
+if(bw){bw.carried=true;player.carrying=bw;showAlert(‘WARP CORE PICKED UP’,1200);}else showAlert(‘NO WARP CORE NEARBY’,800);
+} else {
+// Deliver — find ranger on team (player or bot)
+var rangerIsPlayer=(myTeam===myTeam&&myRole===‘ranger’); // courier so never true
+// Find the ranger position
+var rpos=findTeamRanger(myTeam);
+var rdx=player.x-rpos.x,rdy=player.y-rpos.y;
+if(Math.sqrt(rdx*rdx+rdy*rdy)>140){
+showAlert(‘FLY TO YOUR RANGER TO DELIVER!’,1200);
+return;
+}
+var coreObj=player.carrying;
+player.credits+=25;player.personalPts+=PTS.warpCore;teamScores[myTeam]+=PTS.warpCore;
+coreObj.carried=false;warpCores.splice(warpCores.indexOf(coreObj),1);player.carrying=null;
+// Is the team ranger the PLAYER on this client? No — courier is the player.
+// But if another player IS the ranger we load them. For single-player/bot mode:
+// find bot ranger on same team and load it
+var loaded=false;
+for(var i=0;i<ships.length;i++){
+var s=ships[i];
+if(s.team===myTeam&&s.role===‘ranger’&&s.alive){
+s.rangerAmmo=10;s.rangerWarpLoaded=true;s.rangerCore=coreObj;
+loaded=true;break;
+}
+}
+if(loaded){
+showAlert(‘WARP CORE LOADED INTO RANGER! +$25’,2000);
+} else {
+showAlert(‘WARP CORE DELIVERED! +$25’,1500);
+}
+specialCD=now+1000;
+}
+} else if(myRole===‘stealth’){
+// Check if near an enemy starport — freeze it
+var frozeStarport=false;
+for(var t=0;t<4;t++){
+if(t===myTeam)continue;
+var esp=BASES[t];
+var spfx=esp.x+SP_OFF.x,spfy=esp.y+SP_OFF.y;
+var dx=player.x-spfx,dy=player.y-spfy;
+if(Math.sqrt(dx*dx+dy*dy)<80){
+if(!frozenStarports[t]||frozenStarports[t]<now){
+frozenStarports[t]=now+60000;
+teamScores[myTeam]+=PTS.enemyShip;
+showAlert(TEAM_NAMES[t]+’ STARPORT FROZEN FOR 60s!’,2500);
+spawnP(spfx,spfy,20,‘180,0,255’,4,0.8);
+frozeStarport=true;
+specialCD=now+15000;
+// Stealth revealed while starport is frozen
+player.stealthActive=false;
+}
+break;
+}
+}
+if(!frozeStarport){
+// Freeze up to 3 nearby enemy ships
+var frozeCount=0;
+var range=250;
+for(var si=0;si<ships.length&&frozeCount<3;si++){
+var s=ships[si];
+if(s.team===myTeam||!s.alive)continue;
+var fdx=s.x-player.x,fdy=s.y-player.y;
+if(Math.sqrt(fdx*fdx+fdy*fdy)<range){
+// Check not already frozen
+var alreadyFrozen=false;
+for(var fi=0;fi<frozenShips.length;fi++){if(frozenShips[fi].target===s){alreadyFrozen=true;break;}}
+if(!alreadyFrozen){
+frozenShips.push({target:s,until:now+30000});
+spawnP(s.x,s.y,14,‘200,220,255’,3,0.8);
+frozeCount++;
+}
+}
+}
+// Also check player if enemy team
+if(frozeCount<3){
+var pdx=player.x-player.x,pdy=player.y-player.y; // always 0 — skip self
+}
+if(frozeCount>0){
+showAlert(‘FROZE ‘+frozeCount+’ ENEMY SHIP’+(frozeCount>1?‘S’:’’)+’! (30s)’,2000);
+specialCD=now+20000;
+// Stealth visible while freeze is active
+player.stealthActive=false;
+} else {
+// Toggle cloak
+player.stealthActive=!player.stealthActive;
+if(player.stealthActive){player.stealthTimer=player.stealthDur+(player.upg.stealthDur||0)*3000;showAlert(‘CLOAK ENGAGED’,1000);}
+else{showAlert(‘CLOAK OFF’,800);specialCD=now+12000;}
+}
+}
+} else if(myRole===‘tow’){
+if(!player.towTarget){
+var bh2=null,bd2=99999;
+for(var i=0;i<blackHoles.length;i++){var bh=blackHoles[i];if(!bh.active||bh.towedBy)continue;var dx=bh.x-player.x,dy=bh.y-player.y,d=Math.sqrt(dx*dx+dy*dy);if(d<bd2&&d<160){bd2=d;bh2=bh;}}
+if(bh2){player.towTarget=bh2;bh2.towedBy=‘player’;showAlert(‘BLACK HOLE TETHERED’,1500);}else showAlert(‘NO BLACK HOLE IN RANGE’,800);
+} else {player.towTarget.towedBy=null;player.towTarget=null;showAlert(‘TOW RELEASED’,800);}
+specialCD=now+1000;
+} else if(myRole===‘vanguard’){
+shootMissile();specialCD=now+2000;
+} else if(myRole===‘radar’){
+player.radarPulse=1;showAlert(‘RADAR PULSE’,1000);
+for(var i=0;i<ships.length;i++){var s=ships[i];if(s.stealthActive){var dx=s.x-player.x,dy=s.y-player.y;if(Math.sqrt(dx*dx+dy*dy)<500){s.stealthRevealed=true;s.revealTimer=3000;}}}
+specialCD=now+5000;
+} else if(myRole===‘mothership’){
+// Fire harpoon toward nearest enemy mothership
+var tgt=null,td=99999;
+for(var i=0;i<motherships.length;i++){
+var ms=motherships[i];if(ms.team===myTeam||!ms.alive)continue;
+var dx=ms.x-player.x,dy=ms.y-player.y,d=Math.sqrt(dx*dx+dy*dy);
+if(d<td){td=d;tgt=ms;}
+}
+if(tgt){
+var fa=Math.atan2(tgt.y-player.y,tgt.x-player.x);
+harpoons.push({x:player.x,y:player.y,vx:Math.cos(fa)*3.5,vy:Math.sin(fa)*3.5,team:myTeam,target:tgt,age:0,r:8});
+showAlert(‘HARPOON FIRED!’,700);
+specialCD=now+3000;
+} else showAlert(‘NO ENEMY MOTHERSHIP IN RANGE’,800);
+} else if(myRole===‘jockey1’||myRole===‘jockey2’){
+// If near base drop zone — deposit asteroid into laser
+var dl=doomLasers[myTeam];
+var base=BASES[myTeam];
+var ddx=player.x-base.x,ddy=player.y-base.y;
+if(Math.sqrt(ddx*ddx+ddy*ddy)<100&&player.tractorCore){
+dl.asteroidCount++;
+player.tractorCore=null;
+// Release any tractor lock
+for(var i=0;i<asteroids.length;i++){if(asteroids[i].tractorOwner===‘player’){asteroids[i].tractored=false;asteroids[i].tractorOwner=null;}}
+spawnP(base.x,base.y,8,‘0,200,255’,3,0.6);
+if(dl.asteroidCount>=LASER_ASTEROID_COST&&!dl.built){
+dl.built=true;
+showAlert(‘DOOMSDAY LASER BUILT! USE SPECIAL TO SELECT TARGET!’,4000);
+} else {
+showAlert(‘ASTEROID DEPOSITED (’+dl.asteroidCount+’/’+LASER_ASTEROID_COST+’)’,800);
+}
+specialCD=now+300;
+} else if(dl.built&&!dl.firing){
+// Select next target team
+dl.targetTeam=(dl.targetTeam+1)%4;
+while(dl.targetTeam===myTeam||teamEliminated[dl.targetTeam]) dl.targetTeam=(dl.targetTeam+1)%4;
+showAlert(‘LASER TARGET: ‘+TEAM_NAMES[dl.targetTeam]+’! PRESS AGAIN TO CONFIRM’,1500);
+if(dl.targetTeam===player.laserConfirm){
+// Fire!
+fireDoomLaser(myTeam,dl.targetTeam);
+player.laserConfirm=-1;
+} else {
+player.laserConfirm=dl.targetTeam;
+}
+specialCD=now+500;
+} else {
+// Normal tractor beam
+var best=null,bd=99999;
+for(var i=0;i<asteroids.length;i++){var f=asteroids[i];if(f.size!==2)continue;var dx=f.x-player.x,dy=f.y-player.y,d=Math.sqrt(dx*dx+dy*dy);if(d<bd&&d<350+(player.upg.tractorBeam||0)*60){bd=d;best=f;}}
+if(best){best.tractored=true;best.tractorOwner=‘player’;player.tractorCore=best;showAlert(‘TRACTOR LOCKED’,600);}else showAlert(‘NO SMALL ASTEROIDS IN RANGE’,800);
+specialCD=now+300;
+}
+}
+}
+
+/* UPDATE */
+function update(dt){
+if(!gameActive)return;
+if(alertTimer>0){alertTimer-=dt;if(alertTimer<=0)document.getElementById(‘alertBar’).classList.remove(‘show’);}
+if(shopCooldown>0)shopCooldown-=dt;
+upPlayer(dt);upBots(dt);upBullets(dt);upMissiles(dt);upAsteroids(dt);upBH(dt);upMotherships(dt);upNexuses(dt);upTurretBots(dt);upDoomLasers(dt);upFrozenShips();
+masterAst.angle+=masterAst.rotSpd*dt;masterAst.r=80+200*(masterAst.hp/masterAst.maxHp);
+upParticles(dt);upShield(dt);checkWipe();upHUD();
+}
+function upPlayer(dt){
+if(teamEliminated[myTeam])return; // ghost — can’t act
+if(!player.alive){
+player.respawnTimer-=dt;
+if(player.respawnTimer<=0){
+var base=BASES[myTeam];
+player.x=base.x+(Math.random()-0.5)*80;player.y=base.y+(Math.random()-0.5)*80;
+player.vx=0;player.vy=0;player.alive=true;
+player.shield=player.maxShield; // full shield on respawn
+player.carrying=null;player.towTarget=null;
+player.invincible=3000; // 3 sec invincible on respawn
+player.flashTimer=0;
+showAlert(‘RESPAWNED’,1500);
+}
+return;
+}
+// Tick invincibility
+if(player.invincible>0){player.invincible-=dt;player.flashTimer+=dt;}
+else{player.flashTimer=0;}
+if(btn.left)player.angle-=player.rotSpeed;
+if(btn.right)player.angle+=player.rotSpeed;
+if(btn.thrust){player.vx+=Math.cos(player.angle)*player.thrust;player.vy+=Math.sin(player.angle)*player.thrust;spawnP(player.x-Math.cos(player.angle)*16,player.y-Math.sin(player.angle)*16,2,‘80,160,255’,1.5,0.4);}
+var spd=Math.sqrt(player.vx*player.vx+player.vy*player.vy),mxS=player.maxSpeed+(player.upg.speed||0);
+if(spd>mxS){player.vx=player.vx/spd*mxS;player.vy=player.vy/spd*mxS;}
+player.vx*=0.96;player.vy*=0.96;player.x+=player.vx;player.y+=player.vy;
+player.x=Math.max(20,Math.min(WW-20,player.x));player.y=Math.max(20,Math.min(WH-20,player.y));
+if(myRole===‘mothership’){
+// Mothership controls — slower, heavier
+if(btn.left)player.angle-=player.rotSpeed*0.6;
+if(btn.right)player.angle+=player.rotSpeed*0.6;
+if(btn.thrust){player.vx+=Math.cos(player.angle)*player.thrust*0.5;player.vy+=Math.sin(player.angle)*player.thrust*0.5;spawnP(player.x-Math.cos(player.angle)*20,player.y-Math.sin(player.angle)*20,3,‘80,160,255’,1.5,0.4);}
+var spd=Math.sqrt(player.vx*player.vx+player.vy*player.vy),mxS=3;
+if(spd>mxS){player.vx=player.vx/spd*mxS;player.vy=player.vy/spd*mxS;}
+player.vx*=0.96;player.vy*=0.96;player.x+=player.vx;player.y+=player.vy;
+player.x=Math.max(20,Math.min(WW-20,player.x));player.y=Math.max(20,Math.min(WH-20,player.y));
+if(btn.special)doSpecial();
+// Harpoon avoidance
+for(var hi=0;hi<harpoons.length;hi++){
+var h=harpoons[hi];if(h.team===myTeam)continue;
+var hdx=h.x-player.x,hdy=h.y-player.y,hd=Math.sqrt(hdx*hdx+hdy*hdy);
+if(hd<150){
+// Dodge perpendicular to harpoon direction
+var hangle=Math.atan2(h.vy,h.vx);
+player.vx+=Math.cos(hangle+Math.PI/2)*0.8;
+player.vy+=Math.sin(hangle+Math.PI/2)*0.8;
+}
+}
+var tx=player.x-VW/2/camera.zoom,ty=player.y-VH/2/camera.zoom;camera.x+=(tx-camera.x)*0.1;camera.y+=(ty-camera.y)*0.1;
+return;
+}
+if(btn.special)doSpecial();
+// Ranger auto-picks up warp cores on touch — only matching nexus color
+if(myRole===‘ranger’&&!player.rangerWarpLoaded){
+var needColor=getTeamNexusColor(myTeam);
+for(var wci=warpCores.length-1;wci>=0;wci–){
+var wc=warpCores[wci];if(wc.carried)continue;
+if(wc.color!==needColor)continue;
+var wcx=wc.x-player.x,wcy=wc.y-player.y;
+if(Math.sqrt(wcx*wcx+wcy*wcy)<24){
+wc.carried=true;
+warpCores.splice(wci,1);
+player.rangerWarpLoaded=true;player.rangerAmmo=10;
+player.rangerCore=wc;player.invincible=99999999;
+showAlert(wc.colorName||wc.color+’ CORE LOADED! DELIVER TO NEXUS!’,2000);
+updateRangerHUD();
+break;
+}
+}
+}
+if(player.towTarget&&myRole===‘tow’){var bh=player.towTarget,pull=0.6+(player.upg.towPull||0)*0.3,dx=player.x-bh.x,dy=player.y-bh.y,d=Math.sqrt(dx*dx+dy*dy);if(d>60){bh.x+=dx/d*pull;bh.y+=dy/d*pull;}}
+if(player.stealthActive){player.stealthTimer-=dt;if(player.stealthTimer<=0){player.stealthActive=false;showAlert(‘CLOAK EXPIRED’,1500);}}
+if(player.radarPulse>0)player.radarPulse-=dt/1000;
+var tx=player.x-VW/2/camera.zoom,ty=player.y-VH/2/camera.zoom;camera.x+=(tx-camera.x)*0.1;camera.y+=(ty-camera.y)*0.1;
+if(!shopOpen&&shopCooldown<=0){
+var b2=BASES[myTeam],spx=b2.x+SP_OFF.x,spy=b2.y+SP_OFF.y;
+var sdx=player.x-spx,sdy=player.y-spy;
+if(Math.sqrt(sdx*sdx+sdy*sdy)<60)openShop();
+}
+}
+function upShield(dt){
+if(!player.alive)return;
+if(player.shield<player.maxShield)player.shield=Math.min(player.maxShield,player.shield+player.shieldRegen*(dt/16));
+var p=player.shield/player.maxShield;
+document.getElementById(‘shFill’).style.width=(p*100)+’%’;
+document.getElementById(‘shFill’).className=p<0.25?‘low’:’’;
+}
+function findTeamRanger(team){
+if(team===myTeam&&myRole===‘ranger’)return{x:player.x,y:player.y};
+for(var i=0;i<ships.length;i++){var s=ships[i];if(s.team===team&&s.role===‘ranger’&&s.alive)return{x:s.x,y:s.y};}
+return{x:BASES[team].x,y:BASES[team].y};
+}
+function findNearestEnemy(ship){
+var best=null,bd=99999;
+// Check enemy bots
+for(var i=0;i<ships.length;i++){
+var s=ships[i];
+if(s.team===ship.team||!s.alive||s.stealthActive)continue;
+var dx=s.x-ship.x,dy=s.y-ship.y,d=Math.sqrt(dx*dx+dy*dy);
+if(d<bd){bd=d;best={x:s.x,y:s.y,ref:s};}
+}
+// Check player — only if player is on a DIFFERENT team
+if(player.alive && player.team!==ship.team && !player.stealthActive){
+var dx=player.x-ship.x,dy=player.y-ship.y,d=Math.sqrt(dx*dx+dy*dy);
+if(d<bd){best={x:player.x,y:player.y,ref:null};}
+}
+return best;
+}
+function upBots(dt){
+for(var i=0;i<ships.length;i++){
+var s=ships[i];
+if(!s.alive){
+s.respawnTimer=(s.respawnTimer||0)-dt;
+if(s.respawnTimer<=0){var base=BASES[s.team];s.x=base.x+(Math.random()-0.5)*80;s.y=base.y+(Math.random()-0.5)*80;s.vx=0;s.vy=0;s.alive=true;s.shield=s.maxShield;s.carrying=null;s.tractorTarget=null;}
+continue;
+}
+// Frozen ships move very slowly — skip AI
+if(isShipFrozen(s)){s.vx*=0.85;s.vy*=0.85;s.x+=s.vx;s.y+=s.vy;continue;}
+if(s.revealTimer>0){s.revealTimer-=dt;if(s.revealTimer<=0)s.stealthRevealed=false;}
+s.botTimer-=dt;
+var tx=s.x,ty=s.y,spd=0.14;
+
+```
+if(s.role==='ranger'){
+  if(masterAst.alive){
+    // Each team approaches from their own base direction
+    var baseAngle=Math.atan2(BASES[s.team].y-masterAst.y,BASES[s.team].x-masterAst.x);
+    var standoff=masterAst.r+180;
+    var orbitX=masterAst.x+Math.cos(baseAngle)*standoff;
+    var orbitY=masterAst.y+Math.sin(baseAngle)*standoff;
+    var ddx=orbitX-s.x,ddy=orbitY-s.y,dd=Math.sqrt(ddx*ddx+ddy*ddy);
+    if(dd>50){tx=orbitX;ty=orbitY;}else{tx=s.x;ty=s.y;}
+    s.fireTimer=(s.fireTimer||0)-dt;
+    var distToAst=Math.sqrt((masterAst.x-s.x)*(masterAst.x-s.x)+(masterAst.y-s.y)*(masterAst.y-s.y));
+    if(s.fireTimer<=0&&distToAst<standoff+120){
+      s.fireTimer=280+Math.random()*180;
+      var fa=Math.atan2(masterAst.y-s.y,masterAst.x-s.x);
+      bullets.push({x:s.x+Math.cos(fa)*22,y:s.y+Math.sin(fa)*22,vx:Math.cos(fa)*9,vy:Math.sin(fa)*9,team:s.team,owner:'bot',life:0.55,r:4});
+    }
+  }
+}
+else if(s.role==='jockey1'||s.role==='jockey2'){
+  var dl=doomLasers[s.team];
+  if(!s.tractorTarget){
+    var bf=null,bfd=99999;
+    for(var j=0;j<asteroids.length;j++){var f=asteroids[j];if(f.size!==2||f.tractored)continue;var ddx=f.x-s.x,ddy=f.y-s.y,dd=Math.sqrt(ddx*ddx+ddy*ddy);if(dd<bfd){bfd=dd;bf=f;}}
+    if(bf){s.tractorTarget=bf;bf.tractored=true;bf.tractorOwner='bot'+i;}
+    else{tx=masterAst.x+(Math.random()-0.5)*500;ty=masterAst.y+(Math.random()-0.5)*500;}
+  }
+  if(s.tractorTarget){
+    var fi=asteroids.indexOf(s.tractorTarget);
+    if(fi===-1){s.tractorTarget=null;}
+    else{
+      var f=s.tractorTarget;
+      var ddx=s.x-f.x,ddy=s.y-f.y,dd2=Math.sqrt(ddx*ddx+ddy*ddy);
+      f.vx+=ddx/(dd2||1)*0.5;f.vy+=ddy/(dd2||1)*0.5;
+      if(dd2<25){
+        // Deposit at base for laser
+        var base=BASES[s.team];
+        tx=base.x;ty=base.y;
+        var dbase=Math.sqrt((base.x-s.x)*(base.x-s.x)+(base.y-s.y)*(base.y-s.y));
+        if(dbase<80){
+          dl.asteroidCount++;
+          if(f.hasCore)warpCores.push(mkCore(s.x,s.y,(Math.random()-0.5)*2,(Math.random()-0.5)*2));
+          asteroids.splice(fi,1);s.tractorTarget=null;
+          teamScores[s.team]+=PTS.asteroidCollect;
+          if(dl.asteroidCount>=LASER_ASTEROID_COST&&!dl.built){
+            dl.built=true;
+            // Bot auto-fires at nearest enemy team
+            var fireTarget=-1,maxScore=-1;
+            for(var t=0;t<4;t++){if(t===s.team||teamEliminated[t])continue;if(teamScores[t]>maxScore){maxScore=teamScores[t];fireTarget=t;}}
+            if(fireTarget>=0) setTimeout(function(){fireDoomLaser(s.team,fireTarget);},2000);
+          }
+        }
+      } else {
+        tx=f.x;ty=f.y;
+      }
+    }
+  }
+}
+else if(s.role==='courier'){
+  if(!s.carrying){
+    var bw2=null,bwd=99999;
+    for(var j=0;j<warpCores.length;j++){var w=warpCores[j];if(w.carried)continue;var ddx=w.x-s.x,ddy=w.y-s.y,dd=Math.sqrt(ddx*ddx+ddy*ddy);if(dd<bwd){bwd=dd;bw2=w;}}
+    if(bw2){tx=bw2.x;ty=bw2.y;if(bwd<28){bw2.carried=true;s.carrying=bw2;}}
+    else{tx=masterAst.x+180;ty=masterAst.y;}
+  } else {
+    var rp3=findTeamRanger(s.team);tx=rp3.x;ty=rp3.y;
+    var dr3=Math.sqrt((rp3.x-s.x)*(rp3.x-s.x)+(rp3.y-s.y)*(rp3.y-s.y));
+    if(dr3<60){
+      teamScores[s.team]+=PTS.warpCore;
+      var cObj=s.carrying;
+      cObj.carried=false;warpCores.splice(warpCores.indexOf(cObj),1);s.carrying=null;
+      // Load into player if player is the ranger on this team
+      if(s.team===myTeam&&myRole==='ranger'){
+        player.rangerWarpLoaded=true;player.rangerAmmo=10;
+        player.invincible=99999999;
+        player.rangerCore=cObj;
+        showAlert('WARP CORE LOADED BY COURIER! RAPID FIRE!',2500);
+        updateRangerHUD();
+      }
+    }
+  }
+}
+else if(s.role==='deputy1'||s.role==='deputy2'){
+  // Always escort the ranger — flank left/right
+  var rpe=findTeamRanger(s.team);
+  var offX=(s.role==='deputy1'?70:-70);
+  tx=rpe.x+offX;ty=rpe.y;
+
+  s.fireTimer=(s.fireTimer||0)-dt;
+
+  // Priority 1: shoot nearby enemy ships
+  var enemy=findNearestEnemy(s);
+  if(enemy){
+    var edx=enemy.x-s.x,edy=enemy.y-s.y,edd=Math.sqrt(edx*edx+edy*edy);
+    if(edd<400){
+      if(edd>160){tx=enemy.x;ty=enemy.y;}
+      if(s.fireTimer<=0){
+        s.fireTimer=500+Math.random()*400;
+        var fa=Math.atan2(edy,edx);
+        bullets.push({x:s.x+Math.cos(fa)*18,y:s.y+Math.sin(fa)*18,vx:Math.cos(fa)*8,vy:Math.sin(fa)*8,team:s.team,owner:'bot',life:0.5,r:4});
+      }
+    }
+  }
+
+  // Priority 2: shoot nearby asteroids threatening the ranger
+  if(s.fireTimer<=0){
+    var nearAst=null,nearAstD=99999;
+    for(var j=0;j<asteroids.length;j++){
+      var f=asteroids[j];
+      // Only target asteroids close to the ranger
+      var ardx=f.x-rpe.x,ardy=f.y-rpe.y,ard=Math.sqrt(ardx*ardx+ardy*ardy);
+      if(ard<300){
+        var adx=f.x-s.x,ady=f.y-s.y,ad=Math.sqrt(adx*adx+ady*ady);
+        if(ad<nearAstD){nearAstD=ad;nearAst=f;}
+      }
+    }
+    if(nearAst&&nearAstD<350){
+      s.fireTimer=400+Math.random()*300;
+      var afa=Math.atan2(nearAst.y-s.y,nearAst.x-s.x);
+      bullets.push({x:s.x+Math.cos(afa)*18,y:s.y+Math.sin(afa)*18,vx:Math.cos(afa)*8,vy:Math.sin(afa)*8,team:s.team,owner:'bot',life:0.6,r:4});
+    }
+  }
+}
+else if(s.role==='vanguard'){
+  var ang2=Date.now()*0.0003+s.team*Math.PI/2;
+  tx=masterAst.x+Math.cos(ang2)*(masterAst.r+280);
+  ty=masterAst.y+Math.sin(ang2)*(masterAst.r+280);
+  var vdx=masterAst.x-s.x,vdy=masterAst.y-s.y,vdd=Math.sqrt(vdx*vdx+vdy*vdy);
+  s.fireTimer=(s.fireTimer||0)-dt;
+  if(s.fireTimer<=0&&masterAst.alive&&vdd<masterAst.r+400&&vdd>masterAst.r+80){
+    s.fireTimer=2500+Math.random()*1500;
+    var fa2=Math.atan2(vdy,vdx);
+    bullets.push({x:s.x+Math.cos(fa2)*22,y:s.y+Math.sin(fa2)*22,vx:Math.cos(fa2)*7,vy:Math.sin(fa2)*7,team:s.team,owner:'bot',life:0.5,r:5});
+  }
+}
+else if(s.role==='stealth'){
+  var tgt=(s.team+2)%4;var tb=BASES[tgt];tx=tb.x;ty=tb.y;spd=0.06;
+}
+else if(s.role==='tow'){
+  var nearBH=null,nearBHD=99999;
+  for(var j=0;j<blackHoles.length;j++){var bh2=blackHoles[j];if(!bh2.active||bh2.towedBy)continue;var ddx=bh2.x-s.x,ddy=bh2.y-s.y,dd=Math.sqrt(ddx*ddx+ddy*ddy);if(dd<nearBHD){nearBHD=dd;nearBH=bh2;}}
+  if(nearBH){tx=nearBH.x;ty=nearBH.y;spd=0.07;}
+}
+else if(s.role==='radar'){
+  var ang3=Date.now()*0.0002+s.team*1.5;var b3=BASES[s.team];tx=b3.x+Math.cos(ang3)*180;ty=b3.y+Math.sin(ang3)*180;
+}
+
+var ddx=tx-s.x,ddy=ty-s.y,dd=Math.sqrt(ddx*ddx+ddy*ddy);
+if(dd>30){s.angle=Math.atan2(ddy,ddx);s.vx+=Math.cos(s.angle)*spd;s.vy+=Math.sin(s.angle)*spd;}
+s.vx*=0.93;s.vy*=0.93;
+var bspd=Math.sqrt(s.vx*s.vx+s.vy*s.vy);if(bspd>4.5){s.vx=s.vx/bspd*4.5;s.vy=s.vy/bspd*4.5;}
+s.x+=s.vx;s.y+=s.vy;
+s.x=Math.max(20,Math.min(WW-20,s.x));s.y=Math.max(20,Math.min(WH-20,s.y));
+```
+
+}
+}
+function upBullets(dt){
+for(var i=bullets.length-1;i>=0;i–){
+var b=bullets[i];b.x+=b.vx;b.y+=b.vy;b.life-=dt/5000;
+if(b.life<=0||b.x<0||b.x>WW||b.y<0||b.y>WH){bullets.splice(i,1);continue;}
+var hit=false;
+
+```
+// Hit master asteroid
+if(masterAst.alive){
+  var max=b.x-masterAst.x,may=b.y-masterAst.y;
+  if(Math.sqrt(max*max+may*may)<masterAst.r){
+    masterAst.hp=Math.max(0,masterAst.hp-1);
+    teamScores[b.team]+=PTS.asteroidHit;
+    if(b.owner==='player')player.personalPts+=PTS.asteroidHit;
+    spawnP(b.x,b.y,10,'255,140,30',4,0.7);
+    var ha=Math.atan2(may,max);
+    spawnAst(masterAst.x+Math.cos(ha)*masterAst.r*0.9,masterAst.y+Math.sin(ha)*masterAst.r*0.9,ha,0);
+    if(masterAst.hp<=0){masterAst.alive=false;showAlert('MASTER ASTEROID DESTROYED',5000);}
+    bullets.splice(i,1);hit=true;
+  }
+}
+if(hit)continue;
+
+// Hit cascading asteroids
+for(var ai=asteroids.length-1;ai>=0;ai--){
+  var f=asteroids[ai];
+  var abx=b.x-f.x,aby=b.y-f.y;
+  if(Math.sqrt(abx*abx+aby*aby)<f.r+b.r){
+    spawnP(b.x,b.y,6,f.cols?f.cols[0]:'200,160,80',3,0.6);
+    var breakAngle=Math.atan2(b.y-f.y,b.x-f.x);
+    if(f.size<2){spawnAst(f.x,f.y,breakAngle,f.size+1);}
+    else{
+      if(f.hasCore)warpCores.push(mkCore(f.x,f.y,(Math.random()-0.5)*3,(Math.random()-0.5)*3));
+      teamScores[b.team]+=PTS.asteroidCollect;
+      if(b.owner==='player'){player.credits+=25;player.personalPts+=PTS.asteroidCollect;}
+      spawnP(f.x,f.y,14,f.cols?f.cols[0]:'200,160,80',4,0.8);
+    }
+    asteroids.splice(ai,1);bullets.splice(i,1);hit=true;break;
+  }
+}
+if(hit)continue;
+
+// Hit player — ONLY from enemy team bullets
+if(player.alive && b.team!==myTeam && player.invincible<=0){
+  var pbx=b.x-player.x,pby=b.y-player.y;
+  if(Math.sqrt(pbx*pbx+pby*pby)<16+b.r){
+    var pShieldDmg=0;
+    if(myRole==='tow'){
+      player.hitAccum=(player.hitAccum||0)+1;
+      if(player.hitAccum>=3){player.hitAccum=0;pShieldDmg=1;}
+    } else {pShieldDmg=1;}
+    if(pShieldDmg>0){
+      player.shield=Math.max(0,player.shield-1);
+      player.invincible=2000;player.flashTimer=0;
+      spawnP(player.x,player.y,6,h2r(TEAM_COLORS[myTeam]),2,0.5);
+      if(player.shield<=0){player.alive=false;player.respawnTimer=5000;showAlert('SHIP DESTROYED!',2000);}
+      else showAlert('SHIELD HIT! -1',600);
+    } else {
+      // Hit registered but no shield damage yet — show hit count
+      spawnP(player.x,player.y,4,h2r(TEAM_COLORS[myTeam]),1.5,0.3);
+      showAlert('HIT ('+player.hitAccum+'/3)',400);
+    }
+    bullets.splice(i,1);hit=true;
+  }
+}
+if(hit)continue;
+
+// Hit enemy motherships — bullets damage shield but only harpoons decimate
+if(!hit){
+  for(var mi=0;mi<motherships.length;mi++){
+    var ms=motherships[mi];
+    if(!ms.alive||ms.team===b.team)continue;
+    var mbx=b.x-ms.x,mby=b.y-ms.y;
+    if(Math.sqrt(mbx*mbx+mby*mby)<32+b.r){
+      ms.shield=Math.max(0,ms.shield-1);
+      spawnP(b.x,b.y,6,h2r(TEAM_COLORS[ms.team]),2,0.5);
+      if(b.owner==='player'){player.credits+=5;player.personalPts+=10;}
+      bullets.splice(i,1);hit=true;break;
+    }
+  }
+}
+// Hit enemy turret bots
+if(!hit){
+  for(var ti=0;ti<turretBots.length;ti++){
+    var tb=turretBots[ti];if(!tb.alive||tb.team===b.team)continue;
+    var tbx=b.x-tb.x,tby=b.y-tb.y;
+    if(Math.sqrt(tbx*tbx+tby*tby)<12+b.r){
+      tb.shield--;spawnP(b.x,b.y,4,h2r(tb.color),2,0.5);
+      if(tb.shield<=0){tb.alive=false;spawnP(tb.x,tb.y,16,h2r(tb.color),4,0.8);showAlert('ENEMY TURRET DESTROYED! +$25',1200);if(b.owner==='player'){player.credits+=25;player.personalPts+=75;}}
+      bullets.splice(i,1);hit=true;break;
+    }
+  }
+}
+for(var si=0;si<ships.length;si++){
+  var s=ships[si];
+  if(s.team===b.team||!s.alive)continue;
+  if(s.stealthActive&&!s.stealthRevealed)continue;
+  var sbx=b.x-s.x,sby=b.y-s.y;
+  if(Math.sqrt(sbx*sbx+sby*sby)<s.r+b.r){
+    spawnP(b.x,b.y,6,h2r(s.color),2,0.5);
+    // Tow ships take 3 hits per shield point, others take 1
+    var shieldDmg=0;
+    if(s.role==='tow'){
+      s.hitAccum=(s.hitAccum||0)+1;
+      if(s.hitAccum>=3){s.hitAccum=0;shieldDmg=1;}
+    } else {
+      shieldDmg=1;
+    }
+    if(shieldDmg>0){
+      s.shield-=shieldDmg;
+      if(s.shield<=0){
+        s.alive=false;s.respawnTimer=5000;
+        teamScores[b.team]+=PTS.enemyShip;
+        if(b.owner==='player'){player.credits+=25;player.personalPts+=PTS.enemyShip;}
+        spawnP(s.x,s.y,20,h2r(s.color),4,0.8);
+        showAlert('ENEMY DOWN +$25',1200);
+      }
+    }
+    bullets.splice(i,1);break;
+  }
+}
+```
+
+}
+}
+function upMissiles(dt){
+for(var i=missilesArr.length-1;i>=0;i–){
+var m=missilesArr[i];m.age+=dt;
+if(m.age>8000||m.x<0||m.x>WW||m.y<0||m.y>WH){spawnP(m.x,m.y,8,‘255,100,100’,3,0.6);missilesArr.splice(i,1);continue;}
+if(m.target&&m.target.alive){var dx=m.target.x-m.x,dy=m.target.y-m.y,d=Math.sqrt(dx*dx+dy*dy),ta=Math.atan2(dy,dx),ca=Math.atan2(m.vy,m.vx),diff=ta-ca;while(diff>Math.PI)diff-=Math.PI*2;while(diff<-Math.PI)diff+=Math.PI*2;var na=ca+diff*0.06;m.vx=Math.cos(na)*5;m.vy=Math.sin(na)*5;if(d<m.target.r+m.r+5){m.target.shield-=6;spawnP(m.x,m.y,16,‘255,120,0’,4,0.8);teamScores[m.team]+=PTS.missileHit;if(m.target.shield<=0){m.target.alive=false;m.target.respawnTimer=5000;}missilesArr.splice(i,1);continue;}}
+m.x+=m.vx;m.y+=m.vy;spawnP(m.x,m.y,2,‘255,200,50’,1.5,0.3);
+}
+}
+function upAsteroids(dt){
+for(var i=asteroids.length-1;i>=0;i–){
+var f=asteroids[i];
+f.angle+=f.spin;
+// Player tractor pull
+if(f.tractored&&f.tractorOwner===‘player’&&f.size===2){
+var dx=player.x-f.x,dy=player.y-f.y,d=Math.sqrt(dx*dx+dy*dy);
+f.vx+=dx/d*(0.5+(player.upg.tractorBeam||0)*0.2);
+f.vy+=dy/d*(0.5+(player.upg.tractorBeam||0)*0.2);
+if(d<28){player.credits+=25;player.personalPts+=PTS.asteroidCollect;teamScores[myTeam]+=PTS.asteroidCollect;if(f.hasCore){warpCores.push(mkCore(player.x+(Math.random()-0.5)*20,player.y+(Math.random()-0.5)*20,(Math.random()-0.5)*1.5,(Math.random()-0.5)*1.5));showAlert(‘WARP CORE FOUND +$25’,1500);}else showAlert(‘ASTEROID LOADED +$25’,800);asteroids.splice(i,1);continue;}
+}
+var broken=false;
+// Collision with player — skip if invincible
+if(player.alive&&player.invincible<=0){
+var apx=f.x-player.x,apy=f.y-player.y;
+if(Math.sqrt(apx*apx+apy*apy)<f.r+16){
+player.shield=Math.max(0,player.shield-1);
+player.invincible=2000;player.flashTimer=0;
+spawnP(f.x,f.y,10,f.cols?f.cols[0]:‘200,160,80’,3,0.7);
+if(f.size<2)spawnAst(f.x,f.y,Math.atan2(apy,apx),f.size+1);
+else if(f.hasCore)warpCores.push(mkCore(f.x,f.y,(Math.random()-0.5)*2,(Math.random()-0.5)*2));
+if(player.shield<=0){player.alive=false;player.respawnTimer=5000;showAlert(‘DESTROYED BY ASTEROID!’,2000);}
+else showAlert(‘ASTEROID HIT -1 SHIELD’,700);
+asteroids.splice(i,1);broken=true;
+}
+}
+if(broken)continue;
+// Collision with bots
+for(var si=0;si<ships.length;si++){
+var s=ships[si];if(!s.alive)continue;
+var asx=f.x-s.x,asy=f.y-s.y;
+if(Math.sqrt(asx*asx+asy*asy)<f.r+s.r){
+s.shield-=1;spawnP(f.x,f.y,8,f.cols?f.cols[0]:‘200,160,80’,3,0.6);
+if(f.size<2)spawnAst(f.x,f.y,Math.atan2(asy,asx),f.size+1);
+else if(f.hasCore)warpCores.push(mkCore(f.x,f.y,(Math.random()-0.5)*2,(Math.random()-0.5)*2));
+if(s.shield<=0){s.alive=false;s.respawnTimer=5000;spawnP(s.x,s.y,16,h2r(s.color),4,0.8);}
+asteroids.splice(i,1);broken=true;break;
+}
+}
+if(broken)continue;
+// Hard speed cap — asteroids never exceed their size limit
+var maxSpd=f.size===0?2.0:f.size===1?2.5:2.5;
+var aspd=Math.sqrt(f.vx*f.vx+f.vy*f.vy);
+if(aspd>maxSpd){f.vx=f.vx/aspd*maxSpd;f.vy=f.vy/aspd*maxSpd;}
+
+```
+// Drift
+f.vx*=0.9995;f.vy*=0.9995;f.x+=f.vx;f.y+=f.vy;
+if(f.x<f.r){f.x=f.r;f.vx=Math.abs(f.vx);}if(f.x>WW-f.r){f.x=WW-f.r;f.vx=-Math.abs(f.vx);}
+if(f.y<f.r){f.y=f.r;f.vy=Math.abs(f.vy);}if(f.y>WH-f.r){f.y=WH-f.r;f.vy=-Math.abs(f.vy);}
+```
+
+}
+for(var j=warpCores.length-1;j>=0;j–){var w=warpCores[j];if(w.carried)continue;w.life=(w.life===undefined?10000:w.life)-dt;if(w.life<=0){warpCores.splice(j,1);continue;}w.x+=w.vx;w.y+=w.vy;w.vx*=0.98;w.vy*=0.98;w.pulse+=0.05;w.x=Math.max(0,Math.min(WW,w.x));w.y=Math.max(0,Math.min(WH,w.y));}
+}
+function upBH(dt){for(var i=0;i<blackHoles.length;i++)blackHoles[i].pulse+=0.02;}
+function checkWipe(){
+for(var i=0;i<blackHoles.length;i++){
+var bh=blackHoles[i];if(!bh.active)continue;
+for(var t=0;t<4;t++){var base=BASES[t],dx=bh.x-base.x,dy=bh.y-base.y;if(Math.sqrt(dx*dx+dy*dy)<80){if(t===myTeam){player.credits=0;player.maxShield=10;player.shield=5;player.maxSpeed=5;player.fireRate=400;player.upg={speed:0,shield:0,shieldRegen:0,fireRate:0,tractorBeam:0,stealthDur:0,towPull:0,missileSlot:0};}for(var si=0;si<ships.length;si++){if(ships[si].team===t){ships[si].alive=false;ships[si].respawnTimer=8000;}}teamScores[t]=Math.max(0,teamScores[t]-500);showAlert(‘BASE WIPED: ‘+TEAM_NAMES[t],4000);spawnP(base.x,base.y,40,‘200,100,255’,6,1);var sp2=BH_SPAWNS[bh.id];bh.x=sp2.x;bh.y=sp2.y;bh.towedBy=null;if(player.towTarget===bh)player.towTarget=null;}}
+}
+}
+function upParticles(dt){for(var i=particles.length-1;i>=0;i–){var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.96;p.vy*=0.96;p.life-=p.decay*(dt/16);if(p.life<=0)particles.splice(i,1);}}
+function upHUD(){
+document.getElementById(‘credDisp’).textContent=’$’+player.credits;
+var sc=document.getElementById(‘scoreDisp’);sc.textContent=teamScores[myTeam];sc.style.color=TEAM_COLORS[myTeam];
+document.getElementById(‘personalDisp’).textContent=player.personalPts;
+if(myRole===‘ranger’)updateRangerHUD();
+}
+
+/* DRAW */
+function draw(){
+ctx.clearRect(0,0,VW,VH);ctx.fillStyle=‘rgba(0,0,8,1)’;ctx.fillRect(0,0,VW,VH);
+if(!gameActive)return;
+for(var i=0;i<NEBS.length;i++){var n=NEBS[i],s=ws(n.x,n.y),g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,n.r*camera.zoom);g.addColorStop(0,‘hsla(’+n.h+’,80%,50%,’+n.a+’)’);g.addColorStop(1,‘transparent’);ctx.fillStyle=g;ctx.fillRect(s.x-n.r*camera.zoom,s.y-n.r*camera.zoom,n.r*2*camera.zoom,n.r*2*camera.zoom);}
+var tnow=performance.now()*0.001;
+for(var i=0;i<STARS.length;i++){
+var st=STARS[i];
+var px=1-st.lay*0.12; // parallax factor — far stars move less
+var sx=(st.x-camera.x*px)*camera.zoom,sy=(st.y-camera.y*px)*camera.zoom;
+if(sx<-4||sx>VW+4||sy<-4||sy>VH+4)continue; // cull off-screen
+var twinkle=st.a*(0.7+0.3*Math.sin(tnow*st.twinkleSpd*60+st.twinkle));
+ctx.beginPath();ctx.arc(sx,sy,st.r*camera.zoom,0,Math.PI*2);
+ctx.fillStyle=‘rgba(200,220,255,’+twinkle.toFixed(2)+’)’;
+ctx.fill();
+}
+drawMapBorder();
+drawBases();drawBH();drawMA();drawAsts();drawWC();
+drawDoomLasers();drawNexuses();drawTurretBots();
+drawBullets2();drawMissiles2();
+for(var mi=0;mi<motherships.length;mi++) drawMothership(motherships[mi]);
+drawHarpoons();
+drawBots();drawPlayer2();drawParts();
+drawMinimap();drawAstBar();
+}
+function drawMapBorder(){
+var z=camera.zoom;
+var tl=ws(0,0),br=ws(WW,WH);
+var w=br.x-tl.x,h=br.y-tl.y;
+var pulse=0.55+0.2*Math.sin(performance.now()*0.001);
+
+ctx.save();
+// Outer glow — wide soft purple band
+ctx.shadowColor=‘rgba(160,0,255,0.9)’;
+ctx.shadowBlur=40;
+ctx.strokeStyle=‘rgba(140,0,220,’+pulse.toFixed(2)+’)’;
+ctx.lineWidth=3*z;
+ctx.strokeRect(tl.x,tl.y,w,h);
+
+// Second inner line for depth
+ctx.shadowBlur=18;
+ctx.strokeStyle=‘rgba(200,80,255,’+(pulse*0.6).toFixed(2)+’)’;
+ctx.lineWidth=1.5*z;
+ctx.strokeRect(tl.x+4*z,tl.y+4*z,w-8*z,h-8*z);
+
+// Corner accent diamonds
+var corners=[[tl.x,tl.y],[tl.x+w,tl.y],[tl.x,tl.y+h],[tl.x+w,tl.y+h]];
+var cs=12*z;
+ctx.fillStyle=‘rgba(180,0,255,’+pulse.toFixed(2)+’)’;
+for(var ci=0;ci<corners.length;ci++){
+var cx=corners[ci][0],cy=corners[ci][1];
+ctx.beginPath();ctx.moveTo(cx,cy-cs);ctx.lineTo(cx+cs,cy);ctx.lineTo(cx,cy+cs);ctx.lineTo(cx-cs,cy);ctx.closePath();ctx.fill();
+}
+ctx.restore();
+}
+
+function drawBases(){
+for(var i=0;i<4;i++){
+var base=BASES[i],z=camera.zoom,col=TEAM_COLORS[i];
+var bs=ws(base.x,base.y);
+
+```
+// Base landing pad glow rings
+ctx.save();
+ctx.shadowColor=col;ctx.shadowBlur=20*z;
+ctx.strokeStyle=col+'88';ctx.lineWidth=2*z;
+ctx.beginPath();ctx.arc(bs.x,bs.y,60*z,0,Math.PI*2);ctx.stroke();
+ctx.strokeStyle=col+'33';ctx.lineWidth=1*z;
+ctx.beginPath();ctx.arc(bs.x,bs.y,80*z,0,Math.PI*2);ctx.stroke();
+ctx.fillStyle=col+'18';ctx.beginPath();ctx.arc(bs.x,bs.y,58*z,0,Math.PI*2);ctx.fill();
+ctx.fillStyle=col;ctx.font='bold '+Math.max(7,Math.round(9*z))+'px Orbitron,monospace';
+ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.fillText(TEAM_NAMES[i],bs.x,bs.y);
+ctx.restore();
+
+// ── STARPORT — spacerace8 hexagon style ──
+var spx=base.x+SP_OFF.x,spy=base.y+SP_OFF.y;
+var sps=ws(spx,spy);
+var near=(myTeam===i&&player.alive&&Math.sqrt((player.x-spx)*(player.x-spx)+(player.y-spy)*(player.y-spy))<200);
+var pulse=0.88+0.12*Math.sin(Date.now()*0.002);
+var sr=26*z; // hex size
+
+ctx.save();
+ctx.translate(sps.x,sps.y);
+
+// Outer glow
+try{
+  var g=ctx.createRadialGradient(0,0,0,0,0,70*z*pulse);
+  g.addColorStop(0,'rgba(255,200,50,0.18)');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.arc(0,0,70*z*pulse,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+}catch(e){}
+
+// Dashed docking ring
+ctx.beginPath();ctx.arc(0,0,52*z,0,Math.PI*2);
+ctx.strokeStyle=near?'rgba(255,220,50,0.75)':'rgba(255,200,50,'+( col===TEAM_COLORS[i]?'0.35':'0.25')+')';
+ctx.lineWidth=(near?3:2)*z;ctx.setLineDash([10*z,7*z]);ctx.stroke();ctx.setLineDash([]);
+
+// Hexagon body
+ctx.beginPath();
+for(var j=0;j<6;j++){var a=(j/6)*Math.PI*2;ctx.lineTo(Math.cos(a)*sr,Math.sin(a)*sr);}
+ctx.closePath();
+ctx.fillStyle='rgba(30,18,0,0.92)';ctx.fill();
+ctx.strokeStyle=col+'cc';ctx.lineWidth=2*z;ctx.stroke();
+
+// Rotating docking cross arms
+ctx.rotate(Date.now()*0.0004);
+ctx.strokeStyle=col+'55';ctx.lineWidth=2.5*z;
+ctx.beginPath();ctx.moveTo(-36*z,0);ctx.lineTo(36*z,0);ctx.stroke();
+ctx.beginPath();ctx.moveTo(0,-36*z);ctx.lineTo(0,36*z);ctx.stroke();
+
+ctx.restore();
+
+// Starport label
+ctx.save();
+ctx.fillStyle=near?col:'rgba(255,200,50,0.5)';
+ctx.font='bold '+Math.max(5,Math.round(7*z))+'px Orbitron,monospace';
+ctx.textAlign='center';ctx.textBaseline='bottom';
+ctx.fillText('STARPORT',sps.x,sps.y-56*z);
+if(near&&camera.zoom>0.6){
+  ctx.font='bold '+Math.max(5,Math.round(6*z))+'px Orbitron,monospace';
+  ctx.fillStyle='rgba(255,220,50,0.65)';
+  ctx.fillText('FLY IN TO SHOP',sps.x,sps.y+60*z);
+}
+ctx.restore();
+
+// ── SHIELD REGEN STATION — spacerace8 charge pip style ──
+var srx=base.x+SHR_OFF.x,sry=base.y+SHR_OFF.y;
+var srs=ws(srx,sry);
+var hasPow=true; // always powered for now
+var colR='rgba(0,255,180,';
+var rPulse=0.9+0.1*Math.sin(Date.now()*0.003+i);
+var rr=22*z;
+
+ctx.save();
+ctx.translate(srs.x,srs.y);
+
+// Outer soft ring
+ctx.beginPath();ctx.arc(0,0,rr*1.6*rPulse,0,Math.PI*2);
+ctx.strokeStyle=colR+'0.15)';ctx.lineWidth=7*z;ctx.stroke();
+
+// Main circle glow
+ctx.beginPath();ctx.arc(0,0,rr*rPulse,0,Math.PI*2);
+try{
+  var g2=ctx.createRadialGradient(0,0,0,0,0,rr*rPulse);
+  g2.addColorStop(0,colR+'0.22)');g2.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g2;
+}catch(e){ctx.fillStyle=colR+'0.1)';}
+ctx.fill();
+ctx.strokeStyle=colR+'0.7)';ctx.lineWidth=2*z;ctx.stroke();
+
+// 5 charge pips around the ring
+var numPips=5;
+for(var p2=0;p2<numPips;p2++){
+  var pa=(p2/numPips)*Math.PI*2-Math.PI/2;
+  ctx.beginPath();ctx.arc(Math.cos(pa)*rr*0.65,Math.sin(pa)*rr*0.65,4*z,0,Math.PI*2);
+  ctx.fillStyle='#00ffaa';ctx.fill();
+  ctx.strokeStyle='rgba(0,255,180,0.7)';ctx.lineWidth=1*z;ctx.stroke();
+}
+
+// Lightning bolt centre
+ctx.fillStyle='rgba(0,255,180,0.85)';
+ctx.font='bold '+Math.max(8,Math.round(11*z))+'px Orbitron,monospace';
+ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.fillText('⚡',0,1*z);
+
+ctx.restore();
+
+// Frozen starport indicator
+if(frozenStarports[i]>performance.now()){
+  var rem=Math.ceil((frozenStarports[i]-performance.now())/1000);
+  ctx.save();ctx.globalAlpha=0.5+0.3*Math.sin(Date.now()*0.01);
+  ctx.fillStyle='rgba(180,0,255,0.25)';ctx.beginPath();ctx.arc(sps.x,sps.y,60*z,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(180,0,255,0.8)';ctx.lineWidth=2*z;ctx.beginPath();ctx.arc(sps.x,sps.y,60*z,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=1;ctx.fillStyle='rgba(180,0,255,0.9)';ctx.font='bold '+Math.max(6,Math.round(8*z))+'px Orbitron,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('FROZEN '+rem+'s',sps.x,sps.y+68*z);
+  ctx.restore();
+}
+ctx.font='bold '+Math.max(5,Math.round(6*z))+'px Orbitron,monospace';
+ctx.textAlign='center';ctx.textBaseline='top';
+ctx.fillText('SHIELD REGEN',srs.x,srs.y+rr*1.7+2*z);
+ctx.restore();
+```
+
+}
+}
+function drawMA(){
+if(!masterAst.alive)return;
+var s=ws(masterAst.x,masterAst.y),r=masterAst.r*camera.zoom,z=camera.zoom,hp=masterAst.hp/masterAst.maxHp;
+ctx.save();ctx.translate(s.x,s.y);ctx.rotate(masterAst.angle);
+ctx.shadowColor=hp>0.5?‘rgba(255,160,30,0.7)’:‘rgba(255,60,0,0.8)’;ctx.shadowBlur=30*z;
+ctx.beginPath();
+for(var i=0;i<=22;i++){var a=i/22*Math.PI*2,n=0.78+0.12*Math.sin(a*3+1.2)+0.06*Math.sin(a*7+0.5)+0.04*Math.cos(a*11+2.1),pr=r*n;if(i===0)ctx.moveTo(Math.cos(a)*pr,Math.sin(a)*pr);else ctx.lineTo(Math.cos(a)*pr,Math.sin(a)*pr);}
+ctx.closePath();
+var g=ctx.createRadialGradient(-r*0.2,-r*0.2,r*0.05,0,0,r*1.1);
+g.addColorStop(0,‘rgba(255,200,80,1)’);
+g.addColorStop(0.3,‘rgba(240,130,30,1)’);
+g.addColorStop(0.65,‘rgba(180,70,10,1)’);
+g.addColorStop(1,‘rgba(80,25,0,1)’);
+ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=‘rgba(255,180,60,’+(0.4+hp*0.4)+’)’;ctx.lineWidth=2.5*z;ctx.stroke();
+var cr=[{ox:0.3,oy:0.1,cr:0.14},{ox:-0.25,oy:0.35,cr:0.1},{ox:0.1,oy:-0.4,cr:0.12},{ox:-0.4,oy:-0.15,cr:0.08},{ox:0.5,oy:-0.2,cr:0.07}];
+for(var ci=0;ci<cr.length;ci++){var c=cr[ci];ctx.beginPath();ctx.arc(c.ox*r,c.oy*r,c.cr*r,0,Math.PI*2);ctx.fillStyle=‘rgba(30,18,4,0.7)’;ctx.fill();}
+if(hp<0.5){var ca=Math.min(1,(0.5-hp)*2.5);ctx.strokeStyle=‘rgba(255,100,20,’+(ca*0.7)+’)’;ctx.lineWidth=1.5*z;ctx.beginPath();ctx.moveTo(-r*0.1,r*0.05);ctx.lineTo(r*0.3,-r*0.2);ctx.lineTo(r*0.15,r*0.3);ctx.stroke();}
+ctx.restore();
+var hpCol=hp>0.5?‘rgba(255,200,80,0.9)’:hp>0.2?‘rgba(255,120,30,0.95)’:‘rgba(255,50,50,1)’;
+ctx.save();ctx.fillStyle=hpCol;ctx.shadowColor=hpCol;ctx.shadowBlur=10;ctx.font=‘bold ‘+Math.max(11,Math.round(14*z))+‘px Orbitron,monospace’;ctx.textAlign=‘center’;ctx.textBaseline=‘middle’;ctx.fillText(Math.round(hp*100)+’%’,s.x,s.y);ctx.restore();
+}
+function drawBH(){
+for(var i=0;i<blackHoles.length;i++){
+var bh=blackHoles[i];if(!bh.active)continue;
+var s=ws(bh.x,bh.y),z=camera.zoom,p=bh.pulse;
+ctx.save();
+for(var ring=3;ring>=1;ring–){ctx.strokeStyle=‘rgba(180,0,255,’+(0.08*ring)+’)’;ctx.lineWidth=3*z;ctx.beginPath();ctx.arc(s.x,s.y,(bh.r+ring*12+Math.sin(p)*4)*z,0,Math.PI*2);ctx.stroke();}
+var g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,bh.r*z);g.addColorStop(0,‘rgba(0,0,0,1)’);g.addColorStop(0.6,‘rgba(60,0,120,0.8)’);g.addColorStop(1,‘rgba(120,0,255,0)’);ctx.fillStyle=g;ctx.beginPath();ctx.arc(s.x,s.y,bh.r*z*1.5,0,Math.PI*2);ctx.fill();
+if(bh.towedBy===‘player’){var ps=ws(player.x,player.y);ctx.strokeStyle=‘rgba(0,200,255,0.6)’;ctx.lineWidth=2*z;ctx.setLineDash([5*z,5*z]);ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(ps.x,ps.y);ctx.stroke();ctx.setLineDash([]);}
+ctx.fillStyle=‘rgba(200,100,255,0.8)’;ctx.font=Math.max(6,Math.round(7*z))+‘px Orbitron,monospace’;ctx.textAlign=‘center’;ctx.fillText(‘BLACK HOLE’,s.x,s.y-bh.r*z-6*z);ctx.restore();
+}
+}
+function drawAsts(){
+for(var i=0;i<asteroids.length;i++){
+var f=asteroids[i],s=ws(f.x,f.y),z=camera.zoom;
+ctx.save();ctx.translate(s.x,s.y);ctx.rotate(f.angle);
+var r=f.r*z,pts=f.size===0?14:f.size===1?10:7,jagged=f.size===0?0.22:f.size===1?0.28:0.35,seed=f.seed||0;
+ctx.beginPath();
+for(var j=0;j<=pts;j++){
+var a=j/pts*Math.PI*2,noise=1-jagged+jagged*Math.abs(Math.sin(a*2.3+seed)+Math.sin(a*4.7+seed*0.3)),pr=r*noise;
+if(j===0)ctx.moveTo(Math.cos(a)*pr,Math.sin(a)*pr);else ctx.lineTo(Math.cos(a)*pr,Math.sin(a)*pr);
+}
+ctx.closePath();
+var g=ctx.createRadialGradient(-r*0.2,-r*0.2,r*0.1,0,0,r*1.1);
+var c0=f.cols?f.cols[0]:(f.size===0?‘160,120,70’:f.size===1?‘180,145,90’:‘200,170,110’);
+var c1=f.cols?f.cols[1]:(f.size===0?‘55,35,12’:f.size===1?‘80,55,20’:‘100,75,30’);
+if(f.tractored){g.addColorStop(0,‘rgba(100,210,255,0.95)’);g.addColorStop(1,‘rgba(0,80,160,0.9)’);}
+else{g.addColorStop(0,‘rgba(’+c0+’,0.95)’);g.addColorStop(1,‘rgba(’+c1+’,0.95)’);}
+ctx.fillStyle=g;ctx.fill();
+ctx.shadowColor=f.tractored?‘rgba(0,200,255,0.8)’:‘rgba(200,160,80,0.3)’;ctx.shadowBlur=f.tractored?10*z:4*z;
+ctx.strokeStyle=f.tractored?‘rgba(0,220,255,0.9)’:f.size===0?‘rgba(180,140,80,0.7)’:f.size===1?‘rgba(200,165,100,0.7)’:‘rgba(220,190,130,0.7)’;
+ctx.lineWidth=(f.size===0?2:1.5)*z;ctx.stroke();
+if(f.hasCore&&f.size===2){ctx.fillStyle=‘rgba(0,255,180,0.9)’;ctx.shadowColor=’#00ffaa’;ctx.shadowBlur=8*z;ctx.beginPath();ctx.arc(0,0,2.5*z,0,Math.PI*2);ctx.fill();}
+ctx.restore();
+}
+}
+function drawWC(){
+for(var i=0;i<warpCores.length;i++){
+var w=warpCores[i];if(w.carried)continue;
+var life=w.life===undefined?10000:w.life;
+// Blink fast in last 3 seconds, fade in last 1 second
+if(life<1000&&Math.floor(life/120)%2===0)continue;
+var fadeAlpha=life<3000?0.3+0.7*(life/3000):1;
+var s=ws(w.x,w.y),z=camera.zoom,pulse=Math.sin(w.pulse)*0.4+0.6;
+var col=w.color||’#00ffaa’;
+ctx.save();
+ctx.globalAlpha=pulse*fadeAlpha;
+ctx.shadowColor=col;ctx.shadowBlur=14*z*pulse;
+ctx.fillStyle=col;
+ctx.beginPath();ctx.arc(s.x,s.y,w.r*z,0,Math.PI*2);ctx.fill();
+ctx.globalAlpha=0.9*fadeAlpha;
+ctx.strokeStyle=’#ffffff’;ctx.lineWidth=1.5*z;ctx.stroke();
+ctx.translate(s.x,s.y);ctx.rotate(w.pulse*0.5);
+for(var j=0;j<4;j++){
+var a=j/4*Math.PI*2;
+ctx.beginPath();ctx.moveTo(Math.cos(a)*(w.r+2)*z,Math.sin(a)*(w.r+2)*z);ctx.lineTo(Math.cos(a)*(w.r+6)*z,Math.sin(a)*(w.r+6)*z);
+ctx.strokeStyle=col;ctx.lineWidth=1.5*z;ctx.stroke();
+}
+ctx.restore();
+}
+}
+function drawBullets2(){
+for(var i=0;i<bullets.length;i++){var b=bullets[i],s=ws(b.x,b.y),z=camera.zoom;ctx.save();ctx.shadowColor=TEAM_COLORS[b.team];ctx.shadowBlur=8*z;ctx.fillStyle=TEAM_COLORS[b.team];ctx.beginPath();ctx.arc(s.x,s.y,b.r*z,0,Math.PI*2);ctx.fill();ctx.restore();}
+}
+function drawMissiles2(){
+for(var i=0;i<missilesArr.length;i++){var m=missilesArr[i],s=ws(m.x,m.y),z=camera.zoom,a=Math.atan2(m.vy,m.vx);ctx.save();ctx.translate(s.x,s.y);ctx.rotate(a);ctx.shadowColor=’#ff8800’;ctx.shadowBlur=10*z;ctx.fillStyle=’#ff8800’;ctx.fillRect(-8*z,-3*z,16*z,6*z);ctx.fillStyle=’#ffdd00’;ctx.beginPath();ctx.moveTo(8*z,0);ctx.lineTo(14*z,-4*z);ctx.lineTo(14*z,4*z);ctx.closePath();ctx.fill();ctx.restore();}
+}
+function drawShip(x,y,angle,color,r,role,alive,stA,stR,isP,name,carrying,shPct){
+if(!alive)return;
+if(stA&&!stR&&!isP)return;
+var s=ws(x,y),z=camera.zoom;
+var alpha=stA?(isP?0.3:0.1):1;
+// Role size multipliers
+var sm=role===‘tow’?1.5:role===‘vanguard’?1.3:role===‘ranger’?1.2:role===‘stealth’?0.85:1.0;
+var S=z*sm;
+
+ctx.save();
+ctx.globalAlpha=alpha;
+ctx.translate(s.x,s.y);
+// spaceranger4 convention: rotate by angle+PI/2 so nose points upward at angle=0
+ctx.rotate(angle+Math.PI/2);
+
+// Thrust flame behind hull (before drawing hull so hull renders on top)
+var showFlame=(isP&&btn.thrust);
+if(showFlame){
+var fl=(14+Math.random()*10)*S;
+ctx.beginPath();ctx.moveTo(-6*S,10*S);ctx.lineTo(0,(10+fl/S)*S);ctx.lineTo(6*S,10*S);
+ctx.strokeStyle=‘rgba(255,’+(100+Math.floor(Math.random()*100))+’,0,0.85)’;ctx.lineWidth=3*S;ctx.stroke();
+ctx.beginPath();ctx.moveTo(-3*S,10*S);ctx.lineTo(0,(10+fl/S*0.5)*S);ctx.lineTo(3*S,10*S);
+ctx.strokeStyle=‘rgba(255,255,200,0.65)’;ctx.lineWidth=1.5*S;ctx.stroke();
+}
+
+// Main hull — exact spaceranger4 shape
+ctx.beginPath();
+ctx.moveTo(0,-16*S);
+ctx.lineTo(-10*S,10*S);
+ctx.lineTo(-4*S,6*S);
+ctx.lineTo(0,9*S);
+ctx.lineTo(4*S,6*S);
+ctx.lineTo(10*S,10*S);
+ctx.closePath();
+ctx.fillStyle=‘rgba(0,22,42,0.92)’;
+ctx.fill();
+ctx.strokeStyle=carrying?‘rgba(0,255,170,0.95)’:color;
+ctx.lineWidth=2*S;
+ctx.stroke();
+
+// Cockpit dot
+ctx.beginPath();ctx.arc(0,-5*S,4*S,0,Math.PI*2);
+ctx.fillStyle=carrying?‘rgba(0,255,170,0.7)’:(color+‘88’);
+ctx.fill();
+
+// Wing panels
+ctx.beginPath();ctx.moveTo(-4*S,0);ctx.lineTo(-12*S,-8*S);ctx.lineTo(-10*S,4*S);
+ctx.fillStyle=color+‘2a’;ctx.fill();
+ctx.beginPath();ctx.moveTo(4*S,0);ctx.lineTo(12*S,-8*S);ctx.lineTo(10*S,4*S);
+ctx.fillStyle=color+‘2a’;ctx.fill();
+
+// Role-specific add-ons
+if(role===‘tow’){
+ctx.strokeStyle=color;ctx.lineWidth=2.5*S;
+ctx.beginPath();ctx.moveTo(-10*S,-14*S);ctx.lineTo(-16*S,-14*S);ctx.lineTo(-16*S,-6*S);ctx.stroke();
+ctx.beginPath();ctx.moveTo(10*S,-14*S);ctx.lineTo(16*S,-14*S);ctx.lineTo(16*S,-6*S);ctx.stroke();
+} else if(role===‘vanguard’){
+ctx.fillStyle=color+‘cc’;
+ctx.fillRect(-15*S,-2*S,5*S,7*S);
+ctx.fillRect(10*S,-2*S,5*S,7*S);
+} else if(role===‘radar’){
+ctx.strokeStyle=color;ctx.lineWidth=1.5*S;
+ctx.beginPath();ctx.moveTo(0,-16*S);ctx.lineTo(0,-26*S);ctx.stroke();
+ctx.beginPath();ctx.arc(0,-26*S,5*S,-Math.PI*0.8,Math.PI*1.8);ctx.stroke();
+ctx.strokeStyle=color+‘55’;ctx.lineWidth=1*S;
+ctx.beginPath();ctx.arc(0,-26*S,10*S,-Math.PI*0.7,Math.PI*1.7);ctx.stroke();
+} else if(role===‘jockey1’||role===‘jockey2’){
+ctx.strokeStyle=color;ctx.lineWidth=1.5*S;
+ctx.beginPath();ctx.arc(0,-20*S,3.5*S,0,Math.PI*2);ctx.stroke();
+ctx.fillStyle=‘rgba(0,220,255,0.7)’;
+ctx.beginPath();ctx.arc(0,-20*S,1.8*S,0,Math.PI*2);ctx.fill();
+} else if(role===‘stealth’&&!stA){
+ctx.strokeStyle=color+‘55’;ctx.lineWidth=1*S;
+ctx.beginPath();ctx.moveTo(0,-16*S);ctx.lineTo(0,9*S);ctx.stroke();
+} else if(role===‘stealth’&&!stA){
+ctx.strokeStyle=color+‘55’;ctx.lineWidth=1*S;
+ctx.beginPath();ctx.moveTo(0,-16*S);ctx.lineTo(0,9*S);ctx.stroke();
+}
+
+// Warp core attached at tail of ship (positive Y = back in ship space)
+if(carrying){
+var coreCol=(carrying.color)?carrying.color:’#00ffaa’;
+var corePulse=0.7+0.3*Math.sin(Date.now()*0.008);
+var coreR=7*S*corePulse;
+ctx.shadowColor=coreCol;ctx.shadowBlur=16*S*corePulse;
+ctx.fillStyle=coreCol;
+ctx.globalAlpha=0.9;
+ctx.beginPath();ctx.arc(0,16*S,coreR,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle=’#ffffff’;ctx.lineWidth=1.5*S;ctx.stroke();
+// Rotating spokes
+ctx.rotate(Date.now()*0.003);
+for(var ci=0;ci<4;ci++){
+var ca=ci/4*Math.PI*2;
+ctx.beginPath();ctx.moveTo(Math.cos(ca)*(coreR+1),Math.sin(ca)*(coreR+1));ctx.lineTo(Math.cos(ca)*(coreR+5*S),Math.sin(ca)*(coreR+5*S));
+ctx.strokeStyle=coreCol;ctx.lineWidth=1.5*S;ctx.stroke();
+}
+}
+
+ctx.restore();
+
+// Name label above ship
+if(camera.zoom>0.45&&name){
+ctx.save();ctx.globalAlpha=stA?0.25:1;
+ctx.fillStyle=color;
+ctx.font=‘bold ‘+Math.max(6,Math.round(7*z))+‘px Orbitron,monospace’;
+ctx.textAlign=‘center’;ctx.textBaseline=‘bottom’;
+ctx.fillText(name,s.x,s.y-20*S-4*z);
+ctx.restore();
+}
+}
+function drawShieldRing(x,y,shPct,z){
+if(shPct<=0)return;
+var col=shPct<=0.25?‘rgba(255,60,60,’:‘rgba(0,180,255,’;
+var pulse=0.9+0.1*Math.sin(Date.now()*0.006);
+var sr=28*z*pulse;
+ctx.save();
+ctx.beginPath();ctx.arc(x,y,sr,0,Math.PI*2);
+ctx.strokeStyle=col+(0.25+shPct*0.35)+’)’;ctx.lineWidth=2.5*z;ctx.stroke();
+ctx.beginPath();ctx.arc(x,y,sr,-Math.PI/2,-Math.PI/2+shPct*Math.PI*2);
+ctx.strokeStyle=col+‘0.85)’;ctx.lineWidth=3*z;ctx.stroke();
+ctx.restore();
+}
+
+function drawPlayer2(){
+// Ghost — eliminated, spectator only
+if(teamEliminated[myTeam]){
+ctx.save();ctx.globalAlpha=0.25;
+drawShip(player.x,player.y,player.angle,TEAM_COLORS[myTeam],rR(myRole),myRole,true,false,false,true,myName,null,0);
+ctx.restore();return;
+}
+if(!player.alive){
+var bs=ws(BASES[myTeam].x,BASES[myTeam].y);
+ctx.save();ctx.fillStyle=TEAM_COLORS[myTeam];ctx.font=‘bold ‘+Math.max(12,Math.round(16*camera.zoom))+‘px Orbitron,monospace’;ctx.textAlign=‘center’;ctx.textBaseline=‘middle’;
+ctx.fillText(‘RESPAWNING ‘+Math.ceil(player.respawnTimer/1000)+‘s’,bs.x,bs.y);ctx.restore();return;
+}
+if(player.invincible>0&&player.invincible<5000&&Math.floor(player.flashTimer/80)%2===1) return;
+var s2=ws(player.x,player.y),z=camera.zoom;
+// Mothership player — use mothership draw
+if(myRole===‘mothership’){
+drawMothership({x:player.x,y:player.y,angle:player.angle,team:myTeam,shield:player.shield,maxShield:player.maxShield,hitsReceived:0,alive:true,pulse:performance.now()*0.002});
+return;
+}
+var displayCarrying=player.carrying;
+if(myRole===‘ranger’&&player.rangerWarpLoaded&&!displayCarrying){
+displayCarrying=player.rangerCore||{color:WCORE_COLORS[player.rangerAmmo%WCORE_COLORS.length]};
+}
+drawShip(player.x,player.y,player.angle,TEAM_COLORS[myTeam],rR(myRole),myRole,true,player.stealthActive,false,true,myName,displayCarrying,player.shield/player.maxShield);
+drawShieldRing(s2.x,s2.y,player.shield/player.maxShield,z);
+if((myRole===‘jockey1’||myRole===‘jockey2’)&&btn.special){ctx.save();ctx.strokeStyle=‘rgba(0,200,255,0.3)’;ctx.lineWidth=16*z;ctx.beginPath();ctx.arc(s2.x,s2.y,(300+(player.upg.tractorBeam||0)*60)*z,0,Math.PI*2);ctx.stroke();ctx.restore();}
+if(player.radarPulse>0&&myRole===‘radar’){var pct=1-player.radarPulse;ctx.save();ctx.strokeStyle=‘rgba(0,255,150,’+player.radarPulse+’)’;ctx.lineWidth=2*z;ctx.beginPath();ctx.arc(s2.x,s2.y,500*z*pct,0,Math.PI*2);ctx.stroke();ctx.restore();}
+// Jockey laser progress HUD
+if((myRole===‘jockey1’||myRole===‘jockey2’)&&camera.zoom>0.5){
+var dl=doomLasers[myTeam];
+var el=document.getElementById(‘laserHUD’);
+if(!el){el=document.createElement(‘div’);el.id=‘laserHUD’;el.style.cssText=‘position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:22;text-align:center;pointer-events:none;padding:3px 12px;border-radius:5px;font-size:8px;letter-spacing:2px;font-family:Orbitron,monospace;border:1px solid rgba(0,200,255,0.4);background:rgba(0,10,20,0.85);color:#00ccff;’;document.body.appendChild(el);}
+if(dl.built){el.style.color=’#ff4444’;el.style.borderColor=‘rgba(255,68,68,0.5)’;el.textContent=‘DOOMSDAY LASER READY — PRESS ★ NEAR BASE TO TARGET’;}
+else{el.textContent=‘LASER: ‘+dl.asteroidCount+’/’+LASER_ASTEROID_COST+’ — DEPOSIT ASTEROIDS AT BASE’;}
+}
+}
+function drawBots(){
+var now=performance.now();
+for(var i=0;i<ships.length;i++){
+var s=ships[i];
+if(!s.alive)continue;
+var frozen=isShipFrozen(s);
+var isTeammate=(s.team===myTeam);
+// Stealth visibility rules
+if(s.stealthActive&&!s.stealthRevealed&&!isTeammate)continue; // enemy stealth — invisible
+var drawAlpha=1;
+if(s.stealthActive&&isTeammate) drawAlpha=0.35; // teammate stealth — slightly opaque
+// Draw frozen ships white
+if(frozen){
+var sp=ws(s.x,s.y),z=camera.zoom;
+ctx.save();ctx.globalAlpha=drawAlpha;
+// White hull
+drawShip(s.x,s.y,s.angle,’#ffffff’,s.r,s.role,true,false,false,false,null,null,s.shield/s.maxShield);
+// White overlay flash
+ctx.globalAlpha=0.3+0.2*Math.sin(now*0.02);
+ctx.fillStyle=‘rgba(200,230,255,0.6)’;
+ctx.beginPath();ctx.arc(sp.x,sp.y,s.r*2*z,0,Math.PI*2);ctx.fill();
+ctx.restore();
+// FROZEN label
+if(camera.zoom>0.4){
+var rem=Math.ceil((frozenShips.filter(function(f){return f.target===s;})[0].until-now)/1000);
+ctx.save();ctx.globalAlpha=drawAlpha;
+ctx.fillStyle=’#aaddff’;ctx.font=’bold ’+Math.max(6,Math.round(8*z))+‘px Orbitron,monospace’;
+ctx.textAlign=‘center’;ctx.textBaseline=‘bottom’;
+ctx.fillText(‘❄ FROZEN ‘+rem+‘s’,sp.x,sp.y-s.r*2*z-2*z);
+ctx.restore();
+}
+} else {
+ctx.save();ctx.globalAlpha=drawAlpha;
+drawShip(s.x,s.y,s.angle,s.color,s.r,s.role,s.alive,s.stealthActive,s.stealthRevealed,false,camera.zoom>0.7?‘BOT’:null,s.carrying,s.shield/s.maxShield);
+ctx.restore();
+if(!s.stealthActive){
+var sp2=ws(s.x,s.y);
+drawShieldRing(sp2.x,sp2.y,s.shield/s.maxShield,camera.zoom);
+}
+}
+}
+}
+function drawParts(){for(var i=0;i<particles.length;i++){var p=particles[i],s=ws(p.x,p.y);ctx.beginPath();ctx.arc(s.x,s.y,Math.max(0.1,p.r*p.life*camera.zoom),0,Math.PI*2);ctx.fillStyle=‘rgba(’+p.rgb+’,’+p.life+’)’;ctx.fill();}}
+function drawAstBar(){
+if(!masterAst.alive)return;
+var pct=masterAst.hp/masterAst.maxHp,bw=Math.min(300,VW*0.5),bx=(VW-bw)/2,by=VH-40,bh=14;
+ctx.save();ctx.fillStyle=‘rgba(0,0,0,0.65)’;ctx.fillRect(bx-2,by-2,bw+4,bh+4);ctx.fillStyle=‘rgba(255,255,255,0.06)’;ctx.fillRect(bx,by,bw,bh);
+ctx.fillStyle=pct>0.5?‘rgba(255,160,40,0.9)’:pct>0.2?‘rgba(255,100,20,0.9)’:‘rgba(255,40,40,0.9)’;ctx.fillRect(bx,by,bw*pct,bh);
+ctx.strokeStyle=‘rgba(200,140,80,0.35)’;ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);
+ctx.fillStyle=‘rgba(255,180,80,0.9)’;ctx.font=‘bold 8px Orbitron,monospace’;ctx.textAlign=‘center’;ctx.textBaseline=‘middle’;ctx.fillText(‘MASTER ASTEROID  ‘+masterAst.hp.toLocaleString()+’ HP’,VW/2,by+bh/2);ctx.restore();
+}
+function drawMinimap(){
+var mw=120,mh=90,sx=mw/WW,sy=mh/WH;
+mmCtx.clearRect(0,0,mw,mh);mmCtx.fillStyle=‘rgba(0,5,15,0.95)’;mmCtx.fillRect(0,0,mw,mh);
+for(var i=0;i<NEBS.length;i++){var n=NEBS[i];mmCtx.fillStyle=‘hsla(’+n.h+’,60%,40%,0.05)’;mmCtx.beginPath();mmCtx.arc(n.x*sx,n.y*sy,n.r*sx,0,Math.PI*2);mmCtx.fill();}
+for(var i=0;i<motherships.length;i++){var ms=motherships[i];if(!ms.alive)continue;mmCtx.save();mmCtx.strokeStyle=TEAM_COLORS[ms.team];mmCtx.lineWidth=1.5;mmCtx.beginPath();mmCtx.arc(ms.x*sx,ms.y*sy,5,0,Math.PI*2);mmCtx.stroke();mmCtx.restore();}
+for(var i=0;i<warpNexuses.length;i++){var nx=warpNexuses[i];mmCtx.strokeStyle=nx.filled?nx.color:nx.color+‘66’;mmCtx.lineWidth=1;mmCtx.beginPath();mmCtx.arc(nx.x*sx,nx.y*sy,3,0,Math.PI*2);mmCtx.stroke();}
+for(var i=0;i<turretBots.length;i++){var tb=turretBots[i];if(!tb.alive)continue;mmCtx.fillStyle=tb.color+‘cc’;mmCtx.beginPath();mmCtx.arc(tb.x*sx,tb.y*sy,2,0,Math.PI*2);mmCtx.fill();}
+for(var i=0;i<4;i++){var b=BASES[i];mmCtx.fillStyle=TEAM_COLORS[i]+‘66’;mmCtx.beginPath();mmCtx.arc(b.x*sx,b.y*sy,6,0,Math.PI*2);mmCtx.fill();}
+if(masterAst.alive){mmCtx.fillStyle=‘rgba(200,140,80,0.8)’;mmCtx.beginPath();mmCtx.arc(WW/2*sx,WH/2*sy,4,0,Math.PI*2);mmCtx.fill();}
+for(var i=0;i<blackHoles.length;i++){var bh=blackHoles[i];if(!bh.active)continue;mmCtx.fillStyle=‘rgba(160,0,255,0.9)’;mmCtx.beginPath();mmCtx.arc(bh.x*sx,bh.y*sy,3,0,Math.PI*2);mmCtx.fill();mmCtx.fillStyle=’#000’;mmCtx.beginPath();mmCtx.arc(bh.x*sx,bh.y*sy,1.5,0,Math.PI*2);mmCtx.fill();}
+for(var i=0;i<warpCores.length;i++){var w=warpCores[i];if(w.carried)continue;mmCtx.fillStyle=‘rgba(0,255,170,0.8)’;mmCtx.beginPath();mmCtx.arc(w.x*sx,w.y*sy,2,0,Math.PI*2);mmCtx.fill();}
+for(var i=0;i<ships.length;i++){var s=ships[i];if(!s.alive||s.stealthActive)continue;mmCtx.fillStyle=s.color+‘bb’;mmCtx.beginPath();mmCtx.arc(s.x*sx,s.y*sy,2,0,Math.PI*2);mmCtx.fill();}
+if(player.alive){mmCtx.fillStyle=TEAM_COLORS[myTeam];mmCtx.beginPath();mmCtx.arc(player.x*sx,player.y*sy,3,0,Math.PI*2);mmCtx.fill();var vl={x:camera.x,y:camera.y},vr={x:camera.x+VW/camera.zoom,y:camera.y+VH/camera.zoom};mmCtx.strokeStyle=‘rgba(0,212,255,0.4)’;mmCtx.lineWidth=1;mmCtx.strokeRect(vl.x*sx,vl.y*sy,(vr.x-vl.x)*sx,(vr.y-vl.y)*sy);}
+mmCtx.font=‘5px Orbitron,monospace’;mmCtx.textBaseline=‘middle’;
+for(var i=0;i<4;i++){mmCtx.fillStyle=TEAM_COLORS[i];mmCtx.textAlign=‘left’;mmCtx.fillText(teamScores[i],4+i*30,mh-10);}
+}
+
+/* GAME LOOP */
+function gameLoop(now){requestAnimationFrame(gameLoop);var dt=Math.min(now-lastTime,50);lastTime=now;update(dt);draw();}
+</script>
+
+</body>
+</html>
