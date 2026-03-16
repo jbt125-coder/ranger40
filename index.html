@@ -171,23 +171,39 @@ body{font-family:'Orbitron','Courier New',monospace;touch-action:none;user-selec
     <div class="pw-hint">share with all players to join</div>
   </div>
 
-  <!-- MULTIPLAYER MODE SCREEN -->
+  <!-- MULTIPLAYER LOBBY -->
 
   <div id="mpScreen">
-    <div style="display:flex;gap:10px;margin-bottom:14px;justify-content:center;">
-      <button class="mpBtn" id="btnSolo">🤖 SOLO + BOTS</button>
-      <button class="mpBtn" id="btnHost">📡 HOST GAME</button>
-      <button class="mpBtn" id="btnJoin">🔗 JOIN GAME</button>
-    </div>
-    <div id="mpStatus" style="font-size:9px;letter-spacing:2px;color:rgba(0,212,255,0.7);min-height:40px;text-align:center;padding:4px;"></div>
-    <div id="mpJoinBox" style="display:none;margin-top:8px;">
-      <input id="joinCodeInput" type="text" placeholder="ENTER ROOM CODE" maxlength="20" autocomplete="off" spellcheck="false" style="width:100%;background:rgba(0,18,38,0.9);border:1px solid rgba(0,212,255,0.3);border-radius:5px;color:#00d4ff;font-size:16px;padding:8px 10px;font-family:inherit;outline:none;text-align:center;letter-spacing:3px;margin-bottom:8px;">
-      <button class="mpBtn" id="btnJoinConfirm" style="width:100%;">CONNECT</button>
-    </div>
-    <div id="mpWaiting" style="display:none;margin-top:8px;">
-      <div id="mpPlayerList" style="font-size:9px;letter-spacing:1px;color:rgba(0,212,255,0.8);min-height:30px;"></div>
-      <button class="mpBtn" id="btnLaunch" style="width:100%;display:none;">🚀 LAUNCH GAME</button>
-    </div>
+    <div id="mpLobby">
+      <div style="display:flex;gap:8px;margin-bottom:12px;justify-content:center;flex-wrap:wrap;">
+        <button class="mpBtn" id="btnSolo">🤖 SOLO + BOTS</button>
+        <button class="mpBtn" id="btnHost">📡 HOST GAME</button>
+        <button class="mpBtn" id="btnJoin">🎮 JOIN GAME</button>
+      </div>
+
+```
+  <!-- Host lobby -->
+  <div id="hostLobby" style="display:none;text-align:center;">
+    <div style="font-size:9px;letter-spacing:2px;color:rgba(0,212,255,0.5);margin-bottom:4px;">ROOM CODE</div>
+    <div id="lobbyCode" style="font-size:clamp(18px,5vw,28px);font-weight:900;letter-spacing:6px;color:#ffe800;text-shadow:0 0 20px rgba(255,230,0,0.8);padding:8px 20px;border:1px solid rgba(255,220,0,0.3);border-radius:6px;background:rgba(255,200,0,0.06);display:inline-block;margin-bottom:8px;"></div>
+    <div id="mpStatus" style="font-size:9px;letter-spacing:1px;color:rgba(0,212,255,0.7);min-height:18px;margin-bottom:8px;"></div>
+    <div id="lobbyPips" style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;"></div>
+    <div id="lobbyPlayers" style="font-size:8px;letter-spacing:1px;min-height:24px;color:rgba(0,212,255,0.7);margin-bottom:10px;"></div>
+    <button class="mpBtn" id="btnLaunch" style="width:100%;opacity:0.5;">🚀 LAUNCH (select role first)</button>
+    <button class="mpBtn" id="btnCancelHost" style="width:100%;margin-top:6px;font-size:8px;">✕ CANCEL</button>
+  </div>
+
+  <!-- Join lobby -->
+  <div id="joinLobby" style="display:none;text-align:center;">
+    <div style="font-size:9px;letter-spacing:2px;color:rgba(0,212,255,0.5);margin-bottom:8px;">ENTER ROOM CODE FROM HOST</div>
+    <input id="joinCodeInput" type="text" placeholder="e.g. starlancer42" maxlength="20" autocomplete="off" spellcheck="false" style="width:100%;background:rgba(0,18,38,0.9);border:1px solid rgba(0,212,255,0.4);border-radius:5px;color:#00d4ff;font-size:16px;padding:10px;font-family:inherit;outline:none;text-align:center;letter-spacing:3px;margin-bottom:8px;text-transform:lowercase;">
+    <button class="mpBtn" id="btnJoinConfirm" style="width:100%;">🔗 CONNECT</button>
+    <div id="guestStatus" style="font-size:9px;letter-spacing:1px;color:rgba(0,212,255,0.7);min-height:18px;margin-top:8px;"></div>
+    <button class="mpBtn" id="btnCancelJoin" style="width:100%;margin-top:6px;font-size:8px;">◀ BACK</button>
+  </div>
+</div>
+```
+
   </div>
 
   <div id="roleSelect" style="display:none;">
@@ -338,15 +354,14 @@ if(!selRole){showAlert(‘SELECT A ROLE FIRST’);return;}
 var roleNames={ranger:‘RANGER’,jockey1:‘JOCKEY’,jockey2:‘JOCKEY’,courier:‘COURIER’,deputy1:‘DEPUTY’,deputy2:‘DEPUTY’,stealth:‘STEALTH’,tow:‘TOWSHIP’,vanguard:‘VANGUARD’,radar:‘RADAR’,mothership:‘MOTHERSHIP’};
 var nm=document.getElementById(‘nameInput’).value.trim().toUpperCase()||(roleNames[selRole]||selRole.toUpperCase());
 myTeam=selTeam;myRole=selRole;myName=nm;
-// If client — tell host our selection, wait for start signal
-if(!MP.isHost&&MP.mode!==‘solo’){
-var msg={type:‘roleSelect’,id:MP.myId,name:nm,team:selTeam,role:selRole};
-if(MP.hostConn)MP.hostConn.send(msg);
-else if(MP.ws)MP.ws.send(JSON.stringify(msg));
-mpStatus(‘Role selected! Waiting for host to launch…’);
+if(mpMode===‘guest’){
+// Guest: tell host our selection, show waiting message, wait for start signal
+if(mpHostConn&&mpHostConn.open) mpHostConn.send(JSON.stringify({type:‘roleSelect’,name:nm,team:selTeam,role:selRole}));
 document.getElementById(‘roleSelect’).style.display=‘none’;
 document.getElementById(‘mpScreen’).style.display=‘block’;
-document.getElementById(‘mpWaiting’).style.display=‘block’;
+document.getElementById(‘joinLobby’).style.display=‘none’;
+document.getElementById(‘hostLobby’).style.display=‘none’;
+document.getElementById(‘mpScreen’).querySelector(’#mpLobby’).innerHTML=’<div style="text-align:center;color:rgba(0,212,255,0.8);font-size:9px;letter-spacing:2px;padding:20px;">ROLE SELECTED: ‘+nm+’<br><br>WAITING FOR HOST TO LAUNCH…</div>’;
 return;
 }
 startGame();
@@ -421,186 +436,163 @@ function rR(role){var s={ranger:14,jockey1:10,jockey2:10,courier:9,deputy1:10,de
 function spawnP(x,y,n,rgb,sp,lf){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,s=(sp||2)*(0.5+Math.random());particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:Math.random()*3+1,rgb:rgb,life:lf||1,decay:0.02+Math.random()*0.02});}}
 function ws(wx,wy){return{x:(wx-camera.x)*camera.zoom,y:(wy-camera.y)*camera.zoom};}
 
-/* ═══ MULTIPLAYER ═══ */
-var MP={
-mode:‘solo’,       // ‘solo’ | ‘peerjs-host’ | ‘peerjs-client’ | ‘ws-host’ | ‘ws-client’
-isHost:false,
-peer:null,         // PeerJS Peer
-conns:[],          // PeerJS connections (host only)
-hostConn:null,     // PeerJS conn to host (client only)
-ws:null,           // WebSocket
-roomCode:’’,
-players:{},        // playerId -> {name,team,role,input}
-myId:null,
-ready:false,
-};
+/* ═══ MULTIPLAYER — PeerJS (lancer5 pattern) ═══ */
+var WA=[‘star’,‘nova’,‘void’,‘dark’,‘flux’,‘warp’,‘ion’,‘hyper’,‘solar’,‘neon’,‘cryo’,‘blaze’,‘astro’,‘orbit’];
+var WB=[‘ranger’,‘jockey’,‘courier’,‘deputy’,‘stealth’,‘towship’,‘vanguard’,‘radar’,‘striker’,‘falcon’,‘titan’,‘corsair’,‘specter’,‘pilot’];
+function genCode(){return WA[Math.floor(Math.random()*WA.length)]+WB[Math.floor(Math.random()*WB.length)]+(1+Math.floor(Math.random()*99));}
 
-function mpStatus(msg){var el=document.getElementById(‘mpStatus’);if(el)el.textContent=msg;}
+var mpMode=null,mpRoomCode=’’,mpConnected=false,mpPeer=null;
+var mpConns=[],mpHostConn=null;
+var mpMyIdx=0; // 0=host, 1-39=guests
 
-// Auto-detect: if on localhost or LAN IP, prefer WebSocket; else PeerJS
-function isLocal(){return location.hostname===‘localhost’||location.hostname===‘127.0.0.1’||/^192.168|^10.|^172.(1[6-9]|2\d|3[01])/.test(location.hostname);}
-
-// Load PeerJS dynamically
-function loadPeerJS(cb){
+function loadPeer(cb){
 if(window.Peer){cb();return;}
-var s=document.createElement(‘script’);s.src=‘https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js’;
-s.onload=cb;s.onerror=function(){mpStatus(‘PeerJS failed to load — check internet connection’);};
+var s=document.createElement(‘script’);
+s.src=‘https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js’;
+s.onload=cb;
+s.onerror=function(){setMpSt(‘Failed to load PeerJS — check internet’);};
 document.head.appendChild(s);
 }
 
-function generateRoomCode(){
-var chars=‘ABCDEFGHJKLMNPQRSTUVWXYZ23456789’;
-var code=’’;for(var i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
-return ‘SRO-’+code;
+function setMpSt(m){var e=document.getElementById(‘mpStatus’);if(e)e.textContent=m;}
+function setGuestSt(m){var e=document.getElementById(‘guestStatus’);if(e)e.textContent=m;}
+
+function buildPips(n){
+var el=document.getElementById(‘lobbyPips’);if(!el)return;
+el.innerHTML=’’;
+for(var i=0;i<8;i++){
+var p=document.createElement(‘div’);
+p.style.cssText=‘width:10px;height:10px;border-radius:50%;background:’+(i<n?’#00d4ff’:‘rgba(0,212,255,0.15)’)+’;border:1px solid rgba(0,212,255,0.3);’;
+el.appendChild(p);
+}
 }
 
-// ── HOST via PeerJS ──
-function mpHostPeerJS(){
-mpStatus(‘Loading PeerJS…’);
-loadPeerJS(function(){
-MP.roomCode=generateRoomCode();
-MP.peer=new Peer(MP.roomCode,{debug:0});
-MP.peer.on(‘open’,function(id){
-MP.myId=id;MP.isHost=true;MP.mode=‘peerjs-host’;
-mpStatus(‘ROOM CODE: ‘+MP.roomCode+’\nShare this with players joining’);
-document.getElementById(‘mpWaiting’).style.display=‘block’;
-document.getElementById(‘btnLaunch’).style.display=‘block’;
-mpUpdatePlayerList();
-});
-MP.peer.on(‘connection’,function(conn){
-MP.conns.push(conn);
-conn.on(‘data’,function(data){mpHostReceive(conn,data);});
-conn.on(‘close’,function(){MP.conns=MP.conns.filter(function(c){return c!==conn;});mpUpdatePlayerList();});
-conn.on(‘error’,function(){MP.conns=MP.conns.filter(function(c){return c!==conn;});});
-});
-MP.peer.on(‘error’,function(e){mpStatus(’Host error: ’+e.type);});
-});
+function mpUpdateLobbyPlayers(){
+var el=document.getElementById(‘lobbyPlayers’);if(!el)return;
+var lines=[’<span style="color:#00d4ff">YOU (HOST)</span>’];
+for(var i=0;i<mpConns.length;i++) lines.push(’<span style="color:rgba(0,212,255,0.6)">PLAYER ‘+(i+2)+’</span>’);
+el.innerHTML=lines.join(’<br>’);
+buildPips(1+mpConns.length);
 }
 
-// ── JOIN via PeerJS ──
-function mpJoinPeerJS(code){
-mpStatus(‘Connecting to ‘+code+’…’);
-loadPeerJS(function(){
-MP.peer=new Peer(null,{debug:0});
-MP.peer.on(‘open’,function(id){
-MP.myId=id;
-var conn=MP.peer.connect(code,{reliable:true});
-MP.hostConn=conn;
+// ── HOST ──
+function mpHost(){
+mpRoomCode=genCode();
+document.getElementById(‘lobbyCode’).textContent=mpRoomCode;
+document.getElementById(‘hostLobby’).style.display=‘block’;
+document.getElementById(‘joinLobby’).style.display=‘none’;
+setMpSt(‘Loading PeerJS…’);buildPips(1);
+loadPeer(function(){
+mpPeer=new Peer(mpRoomCode);
+mpPeer.on(‘open’,function(){
+mpMode=‘host’;mpMyIdx=0;
+setMpSt(‘Waiting for players to join…’);
+});
+mpPeer.on(‘connection’,function(conn){
+if(mpConns.length>=39){conn.close();return;}
+mpConns.push(conn);
+var gi=mpConns.length; // guest index 1,2,3…
 conn.on(‘open’,function(){
-MP.mode=‘peerjs-client’;MP.isHost=false;
-mpStatus(‘Connected! Waiting for host to start…’);
-// Send join info
-conn.send({type:‘join’,id:id,name:’’,team:0,role:’’});
-// Show role select
+mpConnected=true;
+setMpSt(‘Player ‘+(gi+1)+’ joined!’);
+mpUpdateLobbyPlayers();
+mpSendTo(conn,{type:‘welcome’,playerIdx:gi,roomCode:mpRoomCode});
+});
+conn.on(‘data’,function(d){mpHostRx(d,gi);});
+conn.on(‘close’,function(){
+mpConns=mpConns.filter(function(c){return c!==conn;});
+mpUpdateLobbyPlayers();
+});
+});
+mpPeer.on(‘error’,function(e){setMpSt(’Error: ’+e.type);});
+});
+}
+
+function mpCancelHost(){
+if(mpPeer)mpPeer.destroy();
+mpConns=[];mpMode=null;mpConnected=false;mpPeer=null;
+document.getElementById(‘hostLobby’).style.display=‘none’;
+}
+
+function mpLaunch(){
+// Tell all guests to start — they use their own role/team selection
+for(var i=0;i<mpConns.length;i++) mpSendTo(mpConns[i],{type:‘start’});
+showRoleSelect();
+}
+
+// ── JOIN ──
+function mpJoin(){
+var code=document.getElementById(‘joinCodeInput’).value.trim().toLowerCase();
+if(!code){setGuestSt(‘Enter the room code!’);return;}
+setGuestSt(‘Connecting to “’+code+’”…’);
+loadPeer(function(){
+mpPeer=new Peer();
+mpPeer.on(‘open’,function(){
+mpHostConn=mpPeer.connect(code);
+mpHostConn.on(‘open’,function(){
+mpMode=‘guest’;mpConnected=true;
+setGuestSt(‘Connected! Select your role below.’);
 showRoleSelect();
 });
-conn.on(‘data’,function(data){mpClientReceive(data);});
-conn.on(‘close’,function(){mpStatus(‘Disconnected from host’);});
-conn.on(‘error’,function(e){mpStatus(’Connection error: ’+e.type);});
+mpHostConn.on(‘data’,function(d){mpGuestRx(d);});
+mpHostConn.on(‘close’,function(){
+mpConnected=false;
+setGuestSt(‘Disconnected from host.’);
 });
-MP.peer.on(‘error’,function(e){mpStatus(‘Error: ‘+e.type+’ — check room code’);});
+});
+mpPeer.on(‘error’,function(e){setGuestSt(‘Error: ‘+e.type+’ — check the room code’);});
 });
 }
 
-// ── HOST via WebSocket (local) ──
-function mpHostWS(){
-var wsUrl=‘ws://’+location.hostname+’:8080’;
-mpStatus(‘Connecting to local server at ‘+wsUrl+’…’);
-var ws=new WebSocket(wsUrl);
-ws.onopen=function(){
-MP.ws=ws;MP.isHost=true;MP.mode=‘ws-host’;
-ws.send(JSON.stringify({type:‘host’,roomCode:GAME_PW}));
-MP.roomCode=GAME_PW;
-mpStatus(’Hosting on local WiFi\nPlayers join at: ‘+location.origin+’\nRoom code: ’+MP.roomCode);
-document.getElementById(‘mpWaiting’).style.display=‘block’;
-document.getElementById(‘btnLaunch’).style.display=‘block’;
-mpUpdatePlayerList();
-};
-ws.onmessage=function(e){var d=JSON.parse(e.data);mpHostReceive(null,d);};
-ws.onerror=function(){mpStatus(‘Cannot reach local server.\nRun: node server.js\nThen refresh.’);};
+// ── HOST: receive from guests ──
+function mpHostRx(raw,gi){
+try{
+var d=typeof raw===‘string’?JSON.parse(raw):raw;
+if(d.type===‘input’){
+// Apply guest input to their bot slot — find ship by mpIdx
+for(var i=0;i<ships.length;i++){
+if(ships[i].mpIdx===gi&&ships[i].alive){
+var s=ships[i];
+// Override bot AI with real input
+s.mpInput=d.input;
+break;
+}
+}
+}
+if(d.type===‘roleSelect’){
+// Guest chose team/role — tell host to skip that bot
+mpSendTo(mpConns[gi-1],{type:‘ack’});
+}
+}catch(e){}
 }
 
-// ── JOIN via WebSocket ──
-function mpJoinWS(code){
-var wsUrl=‘ws://’+location.hostname+’:8080’;
-mpStatus(‘Connecting to ‘+wsUrl+’…’);
-var ws=new WebSocket(wsUrl);
-ws.onopen=function(){
-MP.ws=ws;MP.mode=‘ws-client’;MP.isHost=false;
-ws.send(JSON.stringify({type:‘join’,roomCode:code,name:’’,team:0,role:’’}));
-mpStatus(‘Connected! Select your role then wait for host.’);
-showRoleSelect();
-};
-ws.onmessage=function(e){var d=JSON.parse(e.data);mpClientReceive(d);};
-ws.onerror=function(){mpStatus(‘Cannot connect. Check room code and that host is running.’);};
+// ── GUEST: receive from host ──
+function mpGuestRx(raw){
+try{
+var d=typeof raw===‘string’?JSON.parse(raw):raw;
+if(d.type===‘welcome’){
+mpMyIdx=d.playerIdx;
+}
+if(d.type===‘start’){
+// Host launched — start game with our chosen role
+startGame();
+}
+}catch(e){}
 }
 
-// ── HOST: receive from clients ──
-function mpHostReceive(conn,data){
-if(data.type===‘join’){
-var pid=data.id||‘p’+MP.conns.length;
-MP.players[pid]={name:data.name,team:data.team,role:data.role,input:{left:false,right:false,thrust:false,fire:false,special:false},conn:conn};
-mpUpdatePlayerList();
-// Send back current player list
-mpBroadcast({type:‘playerList’,players:mpPlayerListData()});
-} else if(data.type===‘input’){
-if(MP.players[data.id])MP.players[data.id].input=data.input;
-} else if(data.type===‘roleSelect’){
-if(MP.players[data.id]){MP.players[data.id].team=data.team;MP.players[data.id].role=data.role;MP.players[data.id].name=data.name;}
-mpBroadcast({type:‘playerList’,players:mpPlayerListData()});
-mpUpdatePlayerList();
-}
-}
-
-// ── CLIENT: receive from host ──
-function mpClientReceive(data){
-if(data.type===‘start’){
-// Host launched — start game
-myTeam=data.team||myTeam;myRole=data.role||myRole;myName=data.name||myName;
-MP.ready=true;startGame();
-} else if(data.type===‘playerList’){
-mpUpdatePlayerListFromData(data.players);
-} else if(data.type===‘gameState’){
-// Apply remote game state (future: full sync)
-}
-}
-
-// ── BROADCAST to all clients ──
-function mpBroadcast(data){
-if(MP.mode===‘peerjs-host’){
-for(var i=0;i<MP.conns.length;i++){try{MP.conns[i].send(data);}catch(e){}}
-} else if(MP.mode===‘ws-host’&&MP.ws){
-MP.ws.send(JSON.stringify(Object.assign({},data,{type:‘broadcast_’+data.type})));
-}
-}
-
-// ── SEND input to host (clients only) ──
+// ── SEND INPUT to host every frame (guests only) ──
 function mpSendInput(){
-if(MP.isHost||MP.mode===‘solo’)return;
-var msg={type:‘input’,id:MP.myId,input:{left:btn.left,right:btn.right,thrust:btn.thrust,fire:btn.fire,special:btn.special}};
-if(MP.mode===‘peerjs-client’&&MP.hostConn&&MP.hostConn.open){try{MP.hostConn.send(msg);}catch(e){}}
-else if(MP.mode===‘ws-client’&&MP.ws)MP.ws.send(JSON.stringify(msg));
+if(mpMode!==‘guest’||!mpHostConn||!mpHostConn.open)return;
+try{
+mpHostConn.send(JSON.stringify({
+type:‘input’,
+input:{left:btn.left,right:btn.right,thrust:btn.thrust,fire:btn.fire,special:btn.special}
+}));
+}catch(e){}
 }
 
-function mpPlayerListData(){
-var list=[];
-// Add host (self)
-list.push({id:‘host’,name:myName||‘HOST’,team:myTeam,role:myRole});
-for(var id in MP.players) list.push({id:id,name:MP.players[id].name,team:MP.players[id].team,role:MP.players[id].role});
-return list;
-}
-
-function mpUpdatePlayerList(){
-var el=document.getElementById(‘mpPlayerList’);if(!el)return;
-var list=mpPlayerListData();
-el.innerHTML=’<b style="color:#00d4ff">PLAYERS IN LOBBY (’+list.length+’):</b><br>’+
-list.map(function(p){return ‘<span style="color:'+TEAM_COLORS[p.team]+'">’+TEAM_NAMES[p.team]+’ — ‘+(p.role||’?’).toUpperCase()+’ — ‘+(p.name||’…’)+’</span>’;}).join(’<br>’);
-}
-
-function mpUpdatePlayerListFromData(list){
-var el=document.getElementById(‘mpPlayerList’);if(!el)return;
-el.innerHTML=’<b style="color:#00d4ff">PLAYERS IN LOBBY (’+list.length+’):</b><br>’+
-list.map(function(p){return ‘<span style="color:'+TEAM_COLORS[p.team]+'">’+TEAM_NAMES[p.team]+’ — ‘+(p.role||’?’).toUpperCase()+’ — ‘+(p.name||’…’)+’</span>’;}).join(’<br>’);
+function mpSendTo(conn,d){
+if(conn&&conn.open)try{conn.send(typeof d===‘string’?d:JSON.stringify(d));}catch(e){}
 }
 
 function showRoleSelect(){
@@ -608,37 +600,26 @@ document.getElementById(‘mpScreen’).style.display=‘none’;
 document.getElementById(‘roleSelect’).style.display=‘block’;
 }
 
-// ── LOBBY BUTTON WIRING ──
+// ── BUTTON WIRING ──
 (function(){
 document.getElementById(‘btnSolo’).addEventListener(‘click’,function(){
-MP.mode=‘solo’;MP.isHost=true;showRoleSelect();
+mpMode=‘solo’;showRoleSelect();
 });
-
 document.getElementById(‘btnHost’).addEventListener(‘click’,function(){
-document.getElementById(‘mpJoinBox’).style.display=‘none’;
-if(isLocal()){mpHostWS();}else{mpHostPeerJS();}
-showRoleSelect();
+mpHost();
 });
-
 document.getElementById(‘btnJoin’).addEventListener(‘click’,function(){
-document.getElementById(‘mpJoinBox’).style.display=‘block’;
-mpStatus(isLocal()?‘Enter the room code from the host laptop:’:‘Enter the 9-character room code:’);
+document.getElementById(‘joinLobby’).style.display=‘block’;
+document.getElementById(‘hostLobby’).style.display=‘none’;
 });
-
-document.getElementById(‘btnJoinConfirm’).addEventListener(‘click’,function(){
-var code=document.getElementById(‘joinCodeInput’).value.trim().toUpperCase();
-if(!code){mpStatus(‘Enter a room code first’);return;}
-if(isLocal()){mpJoinWS(code);}else{mpJoinPeerJS(code);}
+document.getElementById(‘btnJoinConfirm’).addEventListener(‘click’,function(){mpJoin();});
+document.getElementById(‘joinCodeInput’).addEventListener(‘keydown’,function(e){if(e.key===‘Enter’)mpJoin();});
+document.getElementById(‘btnCancelHost’).addEventListener(‘click’,function(){mpCancelHost();});
+document.getElementById(‘btnCancelJoin’).addEventListener(‘click’,function(){
+document.getElementById(‘joinLobby’).style.display=‘none’;
+setGuestSt(’’);
 });
-
-document.getElementById(‘btnLaunch’) && document.getElementById(‘btnLaunch’).addEventListener(‘click’,function(){
-// Tell all clients to start
-mpBroadcast({type:‘start’,team:0,role:’’,name:’’});
-// Each client already selected role — they start on receiving ‘start’
-// Host starts now
-showRoleSelect();
-mpStatus(’’);
-});
+document.getElementById(‘btnLaunch’).addEventListener(‘click’,function(){mpLaunch();});
 })();
 
 /* GAME START */
@@ -2619,7 +2600,7 @@ for(var i=0;i<4;i++){mmCtx.fillStyle=TEAM_COLORS[i];mmCtx.textAlign=‘left’;m
 }
 
 /* GAME LOOP */
-function gameLoop(now){requestAnimationFrame(gameLoop);var dt=Math.min(now-lastTime,50);lastTime=now;mpSendInput();update(dt);draw();}
+function gameLoop(now){requestAnimationFrame(gameLoop);var dt=Math.min(now-lastTime,50);lastTime=now;if(mpMode===‘guest’)mpSendInput();update(dt);draw();}
 </script>
 
 </body>
